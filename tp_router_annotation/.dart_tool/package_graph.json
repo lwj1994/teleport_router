@@ -1,0 +1,14 @@
+{
+  "roots": [
+    "tp_router_annotation"
+  ],
+  "packages": [
+    {
+      "name": "tp_router_annotation",
+      "version": "0.0.1",
+      "dependencies": [],
+      "devDependencies": []
+    }
+  ],
+  "configVersion": 1
+}
