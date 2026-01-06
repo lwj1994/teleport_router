@@ -1,64 +1,39 @@
 # TpRouter
 
-基于 `go_router` 的简化 Flutter 路由管理库。只需一行注解即可自动集成路由！
+A simplified, type-safe routing library built on top of `go_router` for Flutter. Integrate routing with just a single annotation!
 
-## 特性
+## Features
 
-- 🎯 **一行注解**：只需 `@TpRoute(path: '/xxx')` 标记页面类
-- 🔄 **自动类型转换**：参数自动从 String 转换为 int, double, bool 等
-- 📦 **单文件输出**：所有路由统一生成到 `tp_router.g.dart`
-- 🔌 **Context 扩展**：便捷导航 `context.tpPush('/path')`
-- 🌐 **go_router 兼容**：完全访问底层 go_router 功能
+- 🎯 **One-Line Annotation**: Mark your widget with `@TpRoute(path: '/xxx')`.
+- 🔄 **Auto Type Conversion**: Automatically convert parameters from String to `int`, `double`, `bool`, etc.
+- 🧩 **Smart Parameter Extraction**:
+  - Explicitly map to Path (`@Path`) or Query (`@Query`) parameters.
+  - **Fallback Logic**: Unannotated fields default to `extra`, but fallback to `path` or `query` automatically for simple types.
+- �️ **Transition Support**: Built-in Cupertino and Material transitions, plus support for custom transitions.
+- 🌍 **Global Configuration**: Set default transitions and durations globally.
+- 📦 **Single File Output**: All routes generated into a single `tp_router.g.dart` file.
+- 🔌 **Context Extensions**: Easy navigation via `context.tpPush('/path')`.
+- 🌐 **go_router Compatible**: Full access to underlying `go_router` features.
 
-## 项目结构
+## Installation
 
-```
-tp_router/
-├── tp_router_annotation/  # 纯 Dart 注解（无 Flutter 依赖）
-├── tp_router/             # Flutter 路由实现
-└── tp_router_generator/   # Build runner 代码生成器
-```
-
-## 安装
+Add the following to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  tp_router:
-    path: ../tp_router
-  tp_router_annotation:
-    path: ../tp_router_annotation
+  tp_router: ^0.0.1
+  tp_router_annotation: ^0.0.1
 
 dev_dependencies:
   build_runner: ^2.4.0
-  tp_router_generator:
-    path: ../tp_router_generator
+  tp_router_generator: ^0.0.1
 ```
 
-## 快速开始
+## Getting Started
 
-### 1. 简单页面路由
+### 1. Define a Route
 
-```dart
-import 'package:flutter/material.dart';
-import 'package:tp_router/tp_router.dart';
-
-@TpRoute(path: '/', isInitial: true)
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: ElevatedButton(
-        onPressed: () => context.tpPush('/user/123?name=John'),
-        child: const Text('Go to User'),
-      ),
-    );
-  }
-}
-```
-
-### 2. 带参数的页面
+Annotate your widget class. Parameters in the constructor are automatically handled.
 
 ```dart
 import 'package:flutter/material.dart';
@@ -66,147 +41,153 @@ import 'package:tp_router/tp_router.dart';
 
 @TpRoute(path: '/user/:id', name: 'user')
 class UserPage extends StatelessWidget {
-  @Path('id')        // 从路径提取: /user/:id
-  final int id;
+  // Explicitly from Path: /user/:id
+  @Path('id')
+  final int userId;
 
-  @Query()           // 从查询参数提取: ?name=xxx
+  // Implicitly from Extra with Fallback to Query: ?name=John
   final String name;
 
-  @Query()           // 自动 int 转换: ?age=xx
-  final int age;
-
   const UserPage({
-    required this.id,
-    required this.name,
-    required this.age,
+    required this.userId,
+    this.name = 'Guest',
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Text('User $id: $name, age $age');
+    return Scaffold(
+      appBar: AppBar(title: Text('User $name')),
+      body: Center(child: Text('ID: $userId')),
+    );
   }
 }
 ```
 
-### 3. 复杂对象参数
+### 2. Run Build Runner
 
-复杂类型自动从 `extra` 数据中提取：
-
-```dart
-@TpRoute(path: '/detail')
-class DetailPage extends StatelessWidget {
-  final UserModel user;  // 自动从 extra 提取
-
-  const DetailPage({required this.user, super.key});
-}
-
-// 导航时传递 extra 数据
-context.tpPush('/detail', extra: {'user': myUserModel});
-```
-
-### 4. 运行 Build Runner
+Generate the routing code:
 
 ```bash
 dart run build_runner build
 ```
 
-生成单个文件：`lib/tp_router.g.dart`
+This creates `lib/tp_router.g.dart`.
 
-### 5. 初始化路由
+### 3. Initialize Router
+
+Initialize `TpRouter` in your `main.dart` using the generated routes.
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
-import 'tp_router.g.dart';  // 生成的文件
+import 'tp_router.g.dart'; // Generated file
 
 void main() {
-  final router = TpRouter(routes: $tpRoutes);
-  runApp(MaterialApp.router(routerConfig: router.routerConfig));
+  // Initialize with generated routes
+  final router = TpRouter(
+    routes: tpRoutes,
+    // Global transition defaults (Optional)
+    defaultTransition: const TpMaterialPageTransition(),
+    defaultTransitionDuration: const Duration(milliseconds: 300),
+  );
+
+  runApp(MaterialApp.router(
+    routerConfig: router.routerConfig,
+  ));
 }
 ```
 
-## 注解
+## Parameter Extraction Rules
 
-### @TpRoute
+TpRouter employs a smart strategy to populate your widget fields:
 
-标记一个类为路由页面。
+1.  **Explicit Annotations**:
+    *   `@Path('paramName')`: Strictly fetches from path parameters.
+    *   `@Query('paramName')`: Strictly fetches from query parameters.
+
+2.  **Implicit (No Annotation)**:
+    *   **Complex Types** (Objects, Lists): Fetched strictly from `extra` map.
+    *   **Simple Types** (`int`, `String`, `bool`, `double`):
+        1.  Checks `extra` map first.
+        2.  **Fallback**: If not found in `extra`, attempts to find key in `path` parameters.
+        3.  **Fallback**: Finally checks `query` parameters.
+
+This allows you to be flexible: pass data via arguments (cleaner) or via URL (deep linkable), and the widget receives it seamlessly.
+
+## Transitions
+
+You can configure page transitions at the route level or globally.
+
+### Route Level
+Override the default transition for a specific page:
 
 ```dart
 @TpRoute(
-  path: '/user/:id',  // 必需：URL 路径
-  name: 'user',       // 可选：路由名称
-  isInitial: true,    // 可选：初始路由
+  path: '/details',
+  transition: TpCupertinoPageTransition(), // iOS style slide
+  // Or: TpMaterialPageTransition(),      // Fade/Zoom up
 )
+class DetailsPage extends StatelessWidget { ... }
 ```
 
-### @Path
-
-从 URL 路径提取参数。
+### Custom Transitions
+Extend `TpTransitionsBuilder` to create your own effects:
 
 ```dart
-@Path()         // 使用字段名作为参数名
-@Path('userId') // 使用自定义参数名
-final int id;
+class MyFadeTransition extends TpTransitionsBuilder {
+  const MyFadeTransition();
+  @override
+  Widget buildTransitions(BuildContext context, Animation<double> animation, 
+      Animation<double> secondaryAnimation, Widget child) {
+    return FadeTransition(opacity: animation, child: child);
+  }
+}
 ```
 
-### @Query
+## Navigation
 
-从查询字符串提取参数。
+Use the context extensions for easy navigation:
 
 ```dart
-@Query()            // ?name=xxx
-@Query('page_size') // ?page_size=10
-final int pageSize;
-```
+## Navigation
 
-## 类型转换
-
-| 类型 | 转换方式 |
-|------|----------|
-| `String` | 直接使用 |
-| `int` | `int.tryParse()` |
-| `double` | `double.tryParse()` |
-| `bool` | `'true'/'1'/'yes'` → `true` |
-| 复杂类型 | 从 `extra` 提取 |
-
-## Context 扩展
+### Type-Safe Navigation (Recommended)
+Use the generated route classes:
 
 ```dart
-// 导航
-context.tpGo('/home');        // 替换当前页面
-context.tpPush('/user/123');  // 压入新页面
-context.tpPop();              // 弹出当前页面
+// Push a new route
+HomeRoute().tp(context);
 
-// 状态
-context.tpCanPop;             // 是否可以弹出
-context.tpLocation;           // 当前路径
+// Pass parameters (Constructor arguments)
+UserRoute(userId: 42, name: 'Alice').tp(context);
 
-// 获取参数
-context.tpParam('name');      // 获取 String 参数
-context.tpParamInt('id');     // 获取 int 参数
-context.tpExtra<T>('user');   // 获取 extra 数据
+// Replace current route
+SettingsRoute().tp(context, replacement: true);
+
+// Clear history (like .go)
+LoginRoute().tp(context, clearHistory: true);
 ```
 
-## 生成的代码
-
-运行 `build_runner` 后，生成单个文件 `lib/tp_router.g.dart`：
+### Dynamic Navigation
+Use `TpRouteData.fromPath`:
 
 ```dart
-// GENERATED CODE - DO NOT MODIFY BY HAND
+// Push by path
+TpRouteData.fromPath('/user/42?name=Alice').tp(context);
 
-import 'package:tp_router/tp_router.dart';
-import 'package:example/pages/home_page.dart';
-import 'package:example/pages/user_page.dart';
-
-TpRouteInfo get $homePageRoute => TpRouteInfo(...);
-TpRouteInfo get $userPageRoute => TpRouteInfo(...);
-
-List<TpRouteInfo> get $tpRoutes => [
-  $homePageRoute,
-  $userPageRoute,
-];
+// Pass complex data (extra)
+TpRouteData.fromPath('/details', extra: {'item': myItem}).tp(context);
 ```
+
+### Context API
+Access via `context.tpRouter`:
+
+```dart
+context.tpRouter.pop();
+final location = context.tpRouter.currentFullPath;
+```
+
 
 ## License
 

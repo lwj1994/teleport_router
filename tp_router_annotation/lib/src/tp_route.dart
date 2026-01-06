@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 /// Annotation to mark a widget class as a route.
 ///
 /// This annotation is processed by the build_runner to
@@ -10,6 +12,10 @@
 ///   const HomePage({super.key});
 ///   // ...
 /// }
+///
+/// // With custom transition:
+/// @TpRoute(path: '/details', transitionsBuilder: TpFadeTransition())
+/// class DetailsPage extends StatelessWidget { ... }
 /// ```
 class TpRoute {
   /// The URL path for this route.
@@ -27,16 +33,72 @@ class TpRoute {
   /// Only one route should be marked as initial.
   final bool isInitial;
 
-  /// Creates a [TpRoute] annotation.
+  /// Custom transition builder for this route.
   ///
-  /// [path] is required and specifies the URL path.
-  /// [name] is optional, defaults to class name.
-  /// [isInitial] marks this as the initial route.
+  /// Should be a const instance of a class that extends [TpTransitionsBuilder].
+  /// Built-in options (from tp_router): TpFadeTransition, TpSlideTransition, TpNoTransition.
+  ///
+  /// Example:
+  /// ```dart
+  /// @TpRoute(path: '/fade', transition: TpFadeTransition())
+  /// class FadePage extends StatelessWidget { ... }
+  /// ```
+  final TpTransitionsBuilder? transition;
+
+  /// Transition duration. Defaults to 300ms.
+  final Duration transitionDuration;
+
+  /// Reverse transition duration. Defaults to 300ms.
+  final Duration reverseTransitionDuration;
+
+  /// Creates a [TpRoute] annotation.
   const TpRoute({
     required this.path,
     this.name,
     this.isInitial = false,
+    this.transition,
+    this.transitionDuration = const Duration(milliseconds: 300),
+    this.reverseTransitionDuration = const Duration(milliseconds: 300),
   });
+}
+
+/// Abstract base class for custom page transitions.
+///
+/// Extend this class to create custom page transition animations.
+/// Built-in implementations are provided in `tp_router` package.
+///
+/// Example:
+/// ```dart
+/// class MySlideTransition extends TpTransitionsBuilder {
+///   const MySlideTransition();
+///
+///   @override
+///   Widget buildTransitions(
+///     BuildContext context,
+///     Animation<double> animation,
+///     Animation<double> secondaryAnimation,
+///     Widget child,
+///   ) {
+///     return SlideTransition(
+///       position: Tween<Offset>(
+///         begin: const Offset(1.0, 0.0),
+///         end: Offset.zero,
+///       ).animate(animation),
+///       child: child,
+///     );
+///   }
+/// }
+/// ```
+abstract class TpTransitionsBuilder {
+  const TpTransitionsBuilder();
+
+  /// Build the transition animation for the page.
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  );
 }
 
 /// Annotation to mark a widget class as a shell route.
@@ -55,9 +117,6 @@ class TpShellRoute {
   final List<Type> children;
 
   /// Whether to use StatefulShellRoute.indexedStack.
-  ///
-  /// If true, the generated code will use `StatefulShellRoute.indexedStack`
-  /// and each child in [children] will be placed in its own Branch.
   final bool isIndexedStack;
 
   /// Creates a [TpShellRoute] annotation.
@@ -68,21 +127,8 @@ class TpShellRoute {
 }
 
 /// Annotation to mark a parameter as coming from URL path.
-///
-/// Example:
-/// ```dart
-/// @TpRoute(path: '/user/:userId')
-/// class UserPage extends StatelessWidget {
-///   @Path('userId')  // Maps path param 'userId' to 'id'
-///   final int id;
-///
-///   const UserPage({required this.id, super.key});
-/// }
-/// ```
 class Path {
   /// Custom parameter name in the path.
-  ///
-  /// If not provided, uses the field/parameter name.
   final String? name;
 
   /// Creates a [Path] annotation.
@@ -90,24 +136,8 @@ class Path {
 }
 
 /// Annotation to mark a parameter as coming from query string.
-///
-/// Example:
-/// ```dart
-/// @TpRoute(path: '/search')
-/// class SearchPage extends StatelessWidget {
-///   @Query()
-///   final String keyword;
-///
-///   @Query('page_size')  // Maps query param 'page_size' to 'pageSize'
-///   final int? pageSize;
-///
-///   const SearchPage({required this.keyword, this.pageSize, super.key});
-/// }
-/// ```
 class Query {
   /// Custom parameter name in the query string.
-  ///
-  /// If not provided, uses the field/parameter name.
   final String? name;
 
   /// Creates a [Query] annotation.

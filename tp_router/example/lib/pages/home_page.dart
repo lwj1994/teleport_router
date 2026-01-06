@@ -6,13 +6,18 @@ import 'package:tp_router/tp_router.dart';
 ///
 /// Usage:
 /// ```dart
-/// context.tpRouter.goPath('/');
-/// // or type-safe:
-/// // HomeRoute().tp(context, clearHistory: true);
+/// context.tpRouter.tp(HomeRoute());
 /// ```
 @TpRoute(path: '/', isInitial: true)
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String? _result;
 
   @override
   Widget build(BuildContext context) {
@@ -24,13 +29,42 @@ class HomePage extends StatelessWidget {
           children: [
             const Text('Welcome to TpRouter Example!'),
             const SizedBox(height: 20),
+            if (_result != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                color: Colors.amber.withOpacity(0.2),
+                child: Text('Result from Details: $_result'),
+              ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // Using context.tpRouter extension
-                // context.tpRouter.push('/user/123?name=John&age=25');
+                // Type-safe navigation with unified tp() method
                 UserRoute(id: 123, name: 'John', age: 25).tp(context);
               },
               child: const Text('Go to User Page'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () {
+                // DetailsPage has custom slide transition (500ms enter, 300ms exit)
+                DetailsRoute(title: 'Custom Transition Demo').tp(context);
+              },
+              child: const Text('Go to Details (Custom Transition)'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () async {
+                final result = await DetailsRoute(
+                  title: 'Waiting for result...',
+                ).tp<String>(context);
+
+                if (mounted) {
+                  setState(() {
+                    _result = result;
+                  });
+                }
+              },
+              child: const Text('Push Details (Wait Result)'),
             ),
           ],
         ),

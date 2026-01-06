@@ -4,7 +4,10 @@ import 'tp_router.g.dart';
 
 void main() {
   // Use generated routes
-  final router = TpRouter(routes: tpRoutes);
+  final router = TpRouter(
+    routes: tpRoutes,
+    routerNeglect: true, // Demo new parameter
+  );
 
   runApp(MyApp(router: router));
 }

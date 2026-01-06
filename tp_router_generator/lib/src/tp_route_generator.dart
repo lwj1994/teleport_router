@@ -3,20 +3,27 @@ import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:build/build.dart';
 import 'package:glob/glob.dart';
 import 'package:source_gen/source_gen.dart';
-import 'package:tp_router_annotation/tp_router_annotation.dart';
 
 /// Builder that collects all @TpRoute annotations and generates
 /// a single tp_router.g.dart file.
 class TpRouterBuilder implements Builder {
-  static const _tpRouteChecker = TypeChecker.fromRuntime(TpRoute);
-  static const _tpShellRouteChecker = TypeChecker.fromRuntime(TpShellRoute);
-  static const _pathChecker = TypeChecker.fromRuntime(Path);
-  static const _queryChecker = TypeChecker.fromRuntime(Query);
+  static const _tpRouteChecker = TypeChecker.fromUrl(
+    'package:tp_router_annotation/src/tp_route.dart#TpRoute',
+  );
+  static const _tpShellRouteChecker = TypeChecker.fromUrl(
+    'package:tp_router_annotation/src/tp_route.dart#TpShellRoute',
+  );
+  static const _pathChecker = TypeChecker.fromUrl(
+    'package:tp_router_annotation/src/tp_route.dart#Path',
+  );
+  static const _queryChecker = TypeChecker.fromUrl(
+    'package:tp_router_annotation/src/tp_route.dart#Query',
+  );
 
   @override
   Map<String, List<String>> get buildExtensions => {
-        r'lib/$lib$': ['lib/tp_router.g.dart'],
-      };
+    r'lib/$lib$': ['lib/tp_router.g.dart'],
+  };
 
   @override
   Future<void> build(BuildStep buildStep) async {
@@ -79,8 +86,10 @@ class TpRouterBuilder implements Builder {
 
     if (allRoutes.isNotEmpty) {
       final content = _generateFile(allRoutes, imports);
-      final outputId =
-          AssetId(buildStep.inputId.package, 'lib/tp_router.g.dart');
+      final outputId = AssetId(
+        buildStep.inputId.package,
+        'lib/tp_router.g.dart',
+      );
       await buildStep.writeAsString(outputId, content);
     }
   }
@@ -99,7 +108,7 @@ class TpRouterBuilder implements Builder {
     final isInitial = annotation.read('isInitial').boolValue;
 
     // Generate route class name (remove Page/Screen suffix)
-    final routeClassName = _generateRouteClassName(className);
+    final routeClassName = _generateRouteClassName(className!);
 
     // Analyze constructor parameters
     final constructor = classElement.unnamedConstructor;
@@ -107,7 +116,7 @@ class TpRouterBuilder implements Builder {
 
     // Collect parameter info
     final params = <_ParamData>[];
-    for (final param in constructor.parameters) {
+    for (final param in constructor.formalParameters) {
       // Skip 'key' parameter for widgets
       if (param.name == 'key') continue;
 
@@ -124,14 +133,51 @@ class TpRouterBuilder implements Builder {
       name: name,
       isInitial: isInitial,
       params: params,
+      transitionType: _extractTransitionType(annotation),
+      transitionDuration: _extractDuration(annotation, 'transitionDuration'),
+      reverseTransitionDuration: _extractDuration(
+        annotation,
+        'reverseTransitionDuration',
+      ),
     );
+  }
+
+  /// Extracts the transition type name from annotation.
+  String? _extractTransitionType(ConstantReader annotation) {
+    final tbReader = annotation.peek('transition');
+    if (tbReader == null || tbReader.isNull) return null;
+
+    final tbValue = tbReader.objectValue;
+    final tbType = tbValue.type;
+    if (tbType == null) return null;
+
+    final element = tbType.element;
+    if (element == null) return null;
+
+    return element.name;
+  }
+
+  /// Extracts Duration from annotation field.
+  Duration _extractDuration(ConstantReader annotation, String fieldName) {
+    final durationReader = annotation.peek(fieldName);
+    if (durationReader == null || durationReader.isNull) {
+      return const Duration(milliseconds: 300);
+    }
+
+    final durationValue = durationReader.objectValue;
+    // Duration stores microseconds internally in _duration field
+    final micros = durationValue.getField('_duration')?.toIntValue() ?? 300000;
+    return Duration(microseconds: micros);
   }
 
   /// Analyzes a class with @TpShellRoute annotation.
   _ShellRouteData? _analyzeShellRoute(
-      Element element, ConstantReader annotation) {
+    Element element,
+    ConstantReader annotation,
+  ) {
     if (element is! ClassElement) return null;
     final className = element.name;
+    if (className == null) return null;
     final routeClassName = _generateRouteClassName(className);
 
     final childrenObj = annotation.read('children').listValue;
@@ -161,21 +207,21 @@ class TpRouterBuilder implements Builder {
     return '${result}Route';
   }
 
-  /// Analyzes a constructor parameter.
   _ParamData? _analyzeParameter(
-    ParameterElement param,
+    FormalParameterElement param,
     ClassElement classElement,
   ) {
     final paramName = param.name;
+    if (paramName == null) return null;
     final paramType = param.type;
-    final typeStr = paramType.getDisplayString(withNullability: true);
+    final typeStr = paramType.getDisplayString();
     final isNullable =
         paramType.nullabilitySuffix == NullabilitySuffix.question;
     final isRequired = param.isRequired && !isNullable;
 
     // Determine source from annotations
     String? customName;
-    String source = 'auto';
+    String source = 'extra';
 
     // Check field annotations first
     final field = classElement.getField(paramName);
@@ -194,11 +240,8 @@ class TpRouterBuilder implements Builder {
       customName = paramResult.name ?? customName;
     }
 
-    // For complex types without explicit annotation, default to extra
+    // For complex types, source remains extra (default).
     final baseType = _getBaseType(typeStr);
-    if (source == 'auto' && _isComplexType(baseType)) {
-      source = 'extra';
-    }
 
     final urlName = customName ?? paramName;
 
@@ -261,10 +304,7 @@ class TpRouterBuilder implements Builder {
   }
 
   /// Generates the complete output file content.
-  String _generateFile(
-    List<_BaseRouteData> allRoutes,
-    Set<String> imports,
-  ) {
+  String _generateFile(List<_BaseRouteData> allRoutes, Set<String> imports) {
     final buffer = StringBuffer();
 
     // Header
@@ -317,23 +357,28 @@ class TpRouterBuilder implements Builder {
   }
 
   String _generateShellRouteClass(
-      _ShellRouteData route, List<_BaseRouteData> allRoutes) {
+    _ShellRouteData route,
+    List<_BaseRouteData> allRoutes,
+  ) {
     final buffer = StringBuffer();
     buffer.writeln('class ${route.routeClassName} {');
 
     if (route.isIndexedStack) {
       // Generate TpStatefulShellRouteInfo
       buffer.writeln(
-          '  static final TpStatefulShellRouteInfo routeInfo = TpStatefulShellRouteInfo(');
+        '  static final TpStatefulShellRouteInfo routeInfo = TpStatefulShellRouteInfo(',
+      );
       // For stateful shell, the builder receives navigationShell
       buffer.writeln(
-          '    builder: (context, navigationShell) => ${route.className}(navigationShell: navigationShell),');
+        '    builder: (context, navigationShell) => ${route.className}(navigationShell: navigationShell),',
+      );
       buffer.writeln('    branches: [');
       for (final childName in route.childrenClassNames) {
         final childRoute = allRoutes.firstWhere(
           (r) => r.className == childName,
           orElse: () => throw StateError(
-              'Child route $childName not found for shell ${route.className}'),
+            'Child route $childName not found for shell ${route.className}',
+          ),
         );
         // Each child gets its own branch list (containing just itself for now)
         buffer.writeln('      [');
@@ -345,15 +390,18 @@ class TpRouterBuilder implements Builder {
     } else {
       // Original Stateless ShellRoute
       buffer.writeln(
-          '  static final TpShellRouteInfo routeInfo = TpShellRouteInfo(');
+        '  static final TpShellRouteInfo routeInfo = TpShellRouteInfo(',
+      );
       buffer.writeln(
-          '    builder: (context, child) => ${route.className}(child: child),');
+        '    builder: (context, child) => ${route.className}(child: child),',
+      );
       buffer.writeln('    routes: [');
       for (final childName in route.childrenClassNames) {
         final childRoute = allRoutes.firstWhere(
           (r) => r.className == childName,
           orElse: () => throw StateError(
-              'Child route $childName not found for shell ${route.className}'),
+            'Child route $childName not found for shell ${route.className}',
+          ),
         );
         buffer.writeln('      ${childRoute.routeClassName}.routeInfo,');
       }
@@ -385,7 +433,7 @@ class TpRouterBuilder implements Builder {
       buffer.writeln('/// $routeClassName($exampleArgs).tp(context);');
     }
     buffer.writeln('/// ```');
-    buffer.writeln('class $routeClassName extends BaseRoute {');
+    buffer.writeln('class $routeClassName extends TpRouteData {');
 
     // Fields
     for (final param in route.params) {
@@ -404,8 +452,9 @@ class TpRouterBuilder implements Builder {
           buffer.writeln('    required this.${param.name},');
         } else {
           if (param.defaultValueCode != null) {
-            buffer
-                .writeln('    this.${param.name} = ${param.defaultValueCode},');
+            buffer.writeln(
+              '    this.${param.name} = ${param.defaultValueCode},',
+            );
           } else {
             buffer.writeln('    this.${param.name},');
           }
@@ -487,6 +536,18 @@ class TpRouterBuilder implements Builder {
     }
     buffer.writeln('${constructorArgs.join(', ')});');
     buffer.writeln('    },');
+
+    // Add transition parameters if specified
+    if (route.transitionType != null) {
+      buffer.writeln('    transition: const ${route.transitionType}(),');
+      buffer.writeln(
+        '    transitionDuration: const Duration(microseconds: ${route.transitionDuration.inMicroseconds}),',
+      );
+      buffer.writeln(
+        '    reverseTransitionDuration: const Duration(microseconds: ${route.reverseTransitionDuration.inMicroseconds}),',
+      );
+    }
+
     buffer.writeln('  );');
     buffer.writeln();
 
@@ -499,26 +560,32 @@ class TpRouterBuilder implements Builder {
     final pathParams = route.params.where((p) => p.source == 'path');
     for (final param in pathParams) {
       buffer.writeln(
-          "    p = p.replaceAll(':${param.urlName}', ${param.name}.toString());");
+        "    p = p.replaceAll(':${param.urlName}', ${param.name}.toString());",
+      );
     }
 
     // Build query parameters
-    final queryParams = route.params.where((p) =>
-        p.source == 'query' ||
-        (p.source == 'auto' && !_isComplexType(p.baseType)));
+    final queryParams = route.params.where(
+      (p) =>
+          p.source == 'query' ||
+          (p.source == 'auto' && !_isComplexType(p.baseType)),
+    );
     if (queryParams.isNotEmpty) {
       buffer.writeln('    final queryParts = <String>[];');
       for (final param in queryParams) {
         if (param.isNullable) {
           buffer.writeln(
-              "    if (${param.name} != null) queryParts.add('${param.urlName}=\${Uri.encodeComponent(${param.name}.toString())}');");
+            "    if (${param.name} != null) queryParts.add('${param.urlName}=\${Uri.encodeComponent(${param.name}.toString())}');",
+          );
         } else {
           buffer.writeln(
-              "    queryParts.add('${param.urlName}=\${Uri.encodeComponent(${param.name}.toString())}');");
+            "    queryParts.add('${param.urlName}=\${Uri.encodeComponent(${param.name}.toString())}');",
+          );
         }
       }
       buffer.writeln(
-          "    if (queryParts.isNotEmpty) p = '\$p?\${queryParts.join('&')}';");
+        "    if (queryParts.isNotEmpty) p = '\$p?\${queryParts.join('&')}';",
+      );
     }
 
     buffer.writeln('    return p;');
@@ -565,88 +632,97 @@ class TpRouterBuilder implements Builder {
     final urlName = p.urlName;
     final isRequired = p.isRequired;
 
-    // Handle extra source
-    if (p.source == 'extra') {
-      return _generateExtraExtraction(p);
-    }
-
-    // Determine the source access method
-    String sourceAccess;
+    // Determine the source access method for string-based parameters
+    String stringSourceAccess;
     switch (p.source) {
       case 'path':
-        sourceAccess = "settings.pathParams['$urlName']";
+        stringSourceAccess = "settings.pathParams['$urlName']";
         break;
       case 'query':
-        sourceAccess = "settings.queryParams['$urlName']";
+        stringSourceAccess = "settings.queryParams['$urlName']";
         break;
-      default: // 'auto'
-        sourceAccess = "settings.pathParams['$urlName'] ?? "
-            "settings.queryParams['$urlName']";
+      default:
+        // Default (extra) fallback
+        stringSourceAccess =
+            "settings.pathParams['$urlName'] ?? settings.queryParams['$urlName']";
+    }
+
+    // Identify if we should check settings.extra for this parameter
+    // User logic: checkExtra if not path and not query
+    final checkExtra = p.source != 'path' && p.source != 'query';
+
+    // Helper to generate the extra check block
+    String generateExtraCheck(String type) {
+      if (!checkExtra) return '';
+      return '''
+      final extraValue = settings.extra['$urlName'];
+      if (extraValue is $type) {
+        return extraValue;
+      }
+''';
+    }
+
+    // Generates the parsing logic closure
+    String generateParsingLogic(
+      String type,
+      String parseMethod, {
+      bool isBool = false,
+    }) {
+      return '''    final $name = (() {
+${generateExtraCheck(type)}
+      final raw = $stringSourceAccess;
+      if (raw == null) {
+        ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
+      }
+      ${isBool ? '''final lower = raw.toLowerCase();
+      if (lower == 'true' || lower == '1' || lower == 'yes') return true;
+      if (lower == 'false' || lower == '0' || lower == 'no') return false;
+      ${isRequired ? "throw ArgumentError('Invalid bool value for: $name');" : "return null;"}''' : '''final parsed = $parseMethod(raw);
+      if (parsed == null) {
+        ${isRequired ? "throw ArgumentError('Invalid $type value for: $name');" : "return null;"}
+      }
+      return parsed;'''}
+    })();''';
     }
 
     // Generate type-specific extraction
     switch (p.baseType) {
       case 'int':
-        return '''    final $name = (() {
-      final raw = $sourceAccess;
-      if (raw == null) {
-        ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
-      }
-      final parsed = int.tryParse(raw);
-      if (parsed == null) {
-        ${isRequired ? "throw ArgumentError('Invalid int value for: $name');" : "return null;"}
-      }
-      return parsed;
-    })();''';
+        return generateParsingLogic('int', 'int.tryParse');
 
       case 'double':
-        return '''    final $name = (() {
-      final raw = $sourceAccess;
-      if (raw == null) {
-        ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
-      }
-      final parsed = double.tryParse(raw);
-      if (parsed == null) {
-        ${isRequired ? "throw ArgumentError('Invalid double value for: $name');" : "return null;"}
-      }
-      return parsed;
-    })();''';
+        return generateParsingLogic('double', 'double.tryParse');
 
       case 'bool':
-        return '''    final $name = (() {
-      final raw = $sourceAccess;
-      if (raw == null) {
-        ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
-      }
-      final lower = raw.toLowerCase();
-      if (lower == 'true' || lower == '1' || lower == 'yes') return true;
-      if (lower == 'false' || lower == '0' || lower == 'no') return false;
-      ${isRequired ? "throw ArgumentError('Invalid bool value for: $name');" : "return null;"}
-    })();''';
+        return generateParsingLogic('bool', '', isBool: true);
 
       case 'num':
-        return '''    final $name = (() {
-      final raw = $sourceAccess;
-      if (raw == null) {
-        ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
-      }
-      final parsed = num.tryParse(raw);
-      if (parsed == null) {
-        ${isRequired ? "throw ArgumentError('Invalid num value for: $name');" : "return null;"}
-      }
-      return parsed;
-    })();''';
+        return generateParsingLogic('num', 'num.tryParse');
 
       case 'String':
       default:
+        // Complex types strictly use extra extraction (with check)
         if (_isComplexType(p.baseType)) {
           return _generateExtraExtraction(p);
         }
+
+        // String case: check extra (if typed String), then fallback string source
+        if (checkExtra) {
+          return '''    final $name = (() {
+      final extraValue = settings.extra['$urlName'];
+      if (extraValue is String) {
+        return extraValue;
+      }
+      return $stringSourceAccess ?? ${isRequired ? "(throw ArgumentError('Missing required parameter: $name'))" : "null"};
+    })();''';
+        }
+
+        // Path/Query String case (source is 'path' or 'query')
         if (isRequired) {
-          return '''    final $name = $sourceAccess ??
+          return '''    final $name = $stringSourceAccess ??
         (throw ArgumentError('Missing required parameter: $name'));''';
         } else {
-          return '''    final $name = $sourceAccess;''';
+          return '''    final $name = $stringSourceAccess;''';
         }
     }
   }
@@ -709,6 +785,9 @@ class _RouteData implements _BaseRouteData {
   final String? name;
   final bool isInitial;
   final List<_ParamData> params;
+  final String? transitionType;
+  final Duration transitionDuration;
+  final Duration reverseTransitionDuration;
 
   _RouteData({
     required this.className,
@@ -717,6 +796,9 @@ class _RouteData implements _BaseRouteData {
     required this.name,
     required this.isInitial,
     required this.params,
+    this.transitionType,
+    this.transitionDuration = const Duration(milliseconds: 300),
+    this.reverseTransitionDuration = const Duration(milliseconds: 300),
   });
 }
 

@@ -2,6 +2,48 @@
   "configVersion": 2,
   "packages": [
     {
+      "name": "characters",
+      "rootUri": "file:///Volumes/mac-ext-ssd/.pub-cache/hosted/pub.dev/characters-1.4.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "collection",
+      "rootUri": "file:///Volumes/mac-ext-ssd/.pub-cache/hosted/pub.dev/collection-1.19.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "flutter",
+      "rootUri": "file:///Users/luwenjie/.puro/envs/stable/flutter/packages/flutter",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
+      "name": "material_color_utilities",
+      "rootUri": "file:///Volumes/mac-ext-ssd/.pub-cache/hosted/pub.dev/material_color_utilities-0.11.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.17"
+    },
+    {
+      "name": "meta",
+      "rootUri": "file:///Volumes/mac-ext-ssd/.pub-cache/hosted/pub.dev/meta-1.16.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "sky_engine",
+      "rootUri": "file:///Users/luwenjie/.puro/envs/stable/flutter/bin/cache/pkg/sky_engine",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
+      "name": "vector_math",
+      "rootUri": "file:///Volumes/mac-ext-ssd/.pub-cache/hosted/pub.dev/vector_math-2.2.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
       "name": "tp_router_annotation",
       "rootUri": "../",
       "packageUri": "lib/",
@@ -9,8 +51,8 @@
     }
   ],
   "generator": "pub",
-  "generatorVersion": "3.9.0",
+  "generatorVersion": "3.9.2",
   "flutterRoot": "file:///Users/luwenjie/.puro/envs/stable/flutter",
-  "flutterVersion": "3.35.2",
-  "pubCache": "file:///Users/luwenjie/.puro/shared/pub_cache"
+  "flutterVersion": "3.35.7",
+  "pubCache": "file:///Volumes/mac-ext-ssd/.pub-cache"
 }

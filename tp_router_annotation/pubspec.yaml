@@ -1,7 +1,12 @@
 name: tp_router_annotation
-description: Annotations for tp_router. Pure Dart, no Flutter dependency.
+description: Annotations for tp_router.
 version: 0.0.1
 homepage: https://github.com/user/tp_router
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter

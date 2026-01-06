@@ -1,140 +1,22 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:tp_router_annotation/tp_router_annotation.dart';
+import 'route.dart';
 
-/// Function type for building a page widget from route parameters.
+/// Function type for building a page widget from route data.
 ///
-/// [settings] contains all parsed and type-converted parameters.
-typedef TpPageBuilder = Widget Function(TpRouteSettings settings);
+/// [data] contains all route parameters with type-safe access.
+typedef TpPageBuilder = Widget Function(TpRouteData data);
 
-/// Function type for building a shell widget (e.g. Scaffod with generic child).
+/// Function type for building a shell widget (e.g. Scaffold with generic child).
 typedef TpShellBuilder = Widget Function(BuildContext context, Widget child);
-
-/// Holds parsed route parameters with type-safe access.
-class TpRouteSettings {
-  final Map<String, String> pathParams;
-  final Map<String, String> queryParams;
-  final Object? extra;
-  final Map<String, dynamic> _typedParams;
-
-  TpRouteSettings({
-    required this.pathParams,
-    required this.queryParams,
-    this.extra,
-    Map<String, dynamic>? typedParams,
-  }) : _typedParams = typedParams ?? {};
-
-  String? getString(String key, {String? defaultValue}) {
-    return pathParams[key] ?? queryParams[key] ?? defaultValue;
-  }
-
-  String getStringRequired(String key) {
-    final value = getString(key);
-    if (value == null) {
-      throw ArgumentError('Missing required String parameter: $key');
-    }
-    return value;
-  }
-
-  int? getInt(String key, {int? defaultValue}) {
-    if (_typedParams.containsKey(key)) {
-      final val = _typedParams[key];
-      if (val is int) return val;
-      if (val is String) return int.tryParse(val) ?? defaultValue;
-    }
-    final raw = pathParams[key] ?? queryParams[key];
-    if (raw == null) return defaultValue;
-    return int.tryParse(raw) ?? defaultValue;
-  }
-
-  int getIntRequired(String key) {
-    final value = getInt(key);
-    if (value == null) {
-      throw ArgumentError('Missing required int parameter: $key');
-    }
-    return value;
-  }
-
-  double? getDouble(String key, {double? defaultValue}) {
-    if (_typedParams.containsKey(key)) {
-      final val = _typedParams[key];
-      if (val is double) return val;
-      if (val is num) return val.toDouble();
-      if (val is String) return double.tryParse(val) ?? defaultValue;
-    }
-    final raw = pathParams[key] ?? queryParams[key];
-    if (raw == null) return defaultValue;
-    return double.tryParse(raw) ?? defaultValue;
-  }
-
-  double getDoubleRequired(String key) {
-    final value = getDouble(key);
-    if (value == null) {
-      throw ArgumentError('Missing required double parameter: $key');
-    }
-    return value;
-  }
-
-  bool? getBool(String key, {bool? defaultValue}) {
-    if (_typedParams.containsKey(key)) {
-      final val = _typedParams[key];
-      if (val is bool) return val;
-      if (val is String) return _parseBool(val) ?? defaultValue;
-    }
-    final raw = pathParams[key] ?? queryParams[key];
-    if (raw == null) return defaultValue;
-    return _parseBool(raw) ?? defaultValue;
-  }
-
-  bool getBoolRequired(String key) {
-    final value = getBool(key);
-    if (value == null) {
-      throw ArgumentError('Missing required bool parameter: $key');
-    }
-    return value;
-  }
-
-  T? getExtra<T>(String key) {
-    if (extra is Map) {
-      final map = extra as Map;
-      if (map.containsKey(key)) {
-        return map[key] as T?;
-      }
-    }
-    return null;
-  }
-
-  T? getExtraAs<T>() {
-    if (extra is T) {
-      return extra as T;
-    }
-    return null;
-  }
-
-  bool? _parseBool(String value) {
-    final lower = value.toLowerCase();
-    if (lower == 'true' || lower == '1' || lower == 'yes') {
-      return true;
-    }
-    if (lower == 'false' || lower == '0' || lower == 'no') {
-      return false;
-    }
-    return null;
-  }
-
-  dynamic operator [](String key) {
-    return _typedParams[key] ??
-        pathParams[key] ??
-        queryParams[key] ??
-        getExtra(key);
-  }
-}
 
 /// Abstract base class for defining route topology.
 abstract class TpRouteBase {
   const TpRouteBase();
 
   /// Convert to GoRouter's RouteBase.
-  RouteBase toGoRoute();
+  RouteBase toGoRoute({TpRouterConfig? config});
 }
 
 /// Represents a single route entry in the route table.
@@ -159,6 +41,15 @@ class TpRouteInfo extends TpRouteBase {
   /// Child routes.
   final List<TpRouteBase> children;
 
+  /// Custom transition builder.
+  final TpTransitionsBuilder? transition;
+
+  /// Transition duration.
+  final Duration transitionDuration;
+
+  /// Reverse transition duration.
+  final Duration reverseTransitionDuration;
+
   /// Creates a [TpRouteInfo] instance.
   const TpRouteInfo({
     required this.path,
@@ -167,24 +58,94 @@ class TpRouteInfo extends TpRouteBase {
     this.isInitial = false,
     this.params = const [],
     this.children = const [],
+    this.transition,
+    this.transitionDuration = const Duration(milliseconds: 300),
+    this.reverseTransitionDuration = const Duration(milliseconds: 300),
   });
 
+  TpRouteData _buildRouteData(GoRouterState state) {
+    final extraData = state.extra;
+    return _BuilderRouteData(
+      fullPath: state.uri.toString(),
+      pathParams: state.pathParameters,
+      queryParams: state.uri.queryParameters,
+      extra: extraData is Map<String, dynamic> ? extraData : const {},
+    );
+  }
+
   @override
-  GoRoute toGoRoute() {
+  GoRoute toGoRoute({TpRouterConfig? config}) {
+    // Determine transition to use
+    final tb = transition ?? config?.defaultTransition;
+
+    // Determine durations
+    final tDur = transition != null
+        ? transitionDuration
+        : (config?.defaultTransitionDuration ?? transitionDuration);
+
+    final rDur = transition != null
+        ? reverseTransitionDuration
+        : (config?.defaultReverseTransitionDuration ??
+            reverseTransitionDuration);
+
+    if (tb != null) {
+      // Use pageBuilder for custom transitions
+      return GoRoute(
+        path: path,
+        name: name,
+        pageBuilder: (context, state) {
+          final data = _buildRouteData(state);
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: builder(data),
+            transitionDuration: tDur,
+            reverseTransitionDuration: rDur,
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return tb.buildTransitions(
+                  context, animation, secondaryAnimation, child);
+            },
+          );
+        },
+        routes: children.map((c) => c.toGoRoute(config: config)).toList(),
+      );
+    }
+
+    // Default: use builder
     return GoRoute(
       path: path,
       name: name,
       builder: (context, state) {
-        final settings = TpRouteSettings(
-          pathParams: state.pathParameters,
-          queryParams: state.uri.queryParameters,
-          extra: state.extra,
-        );
-        return builder(settings);
+        final data = _buildRouteData(state);
+        return builder(data);
       },
-      routes: children.map((c) => c.toGoRoute()).toList(),
+      routes: children.map((c) => c.toGoRoute(config: config)).toList(),
     );
   }
+}
+
+/// Internal route data implementation for builder context.
+class _BuilderRouteData extends TpRouteData {
+  @override
+  final String fullPath;
+
+  @override
+  final Map<String, String> pathParams;
+
+  @override
+  final Map<String, String> queryParams;
+
+  final Map<String, dynamic> _extra;
+
+  @override
+  Map<String, dynamic> get extra => _extra;
+
+  const _BuilderRouteData({
+    required this.fullPath,
+    required this.pathParams,
+    required this.queryParams,
+    required Map<String, dynamic> extra,
+  }) : _extra = extra;
 }
 
 /// A shell route that wraps a child route with a shell UI.
@@ -203,7 +164,7 @@ class TpShellRouteInfo extends TpRouteBase {
   });
 
   @override
-  RouteBase toGoRoute() {
+  RouteBase toGoRoute({TpRouterConfig? config}) {
     return ShellRoute(
       builder: (context, state, child) {
         // We wrap the GoRouter state away, exposing just context and child
@@ -251,7 +212,7 @@ class TpStatefulShellRouteInfo extends TpRouteBase {
   });
 
   @override
-  RouteBase toGoRoute() {
+  RouteBase toGoRoute({TpRouterConfig? config}) {
     return StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return builder(context, TpStatefulNavigationShell(navigationShell));
@@ -282,13 +243,4 @@ class TpParamInfo {
     this.defaultValue,
     this.source = 'auto',
   });
-}
-
-/// Interface for generated route objects.
-abstract class TpRouteObject {
-  /// The full path of the route including query parameters.
-  String get fullPath;
-
-  /// Extra data to be passed to the route.
-  Map<String, dynamic> get extra;
 }

@@ -3,24 +3,30 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tp_router/tp_router.dart';
 
 void main() {
-  group('TpRouteSettings', () {
+  group('TpRouteData', () {
     test('parses basic parameters correctly', () {
-      final settings = TpRouteSettings(
+      final data = MockRouteData(
+        fullPath: '/user/123',
         pathParams: {'id': '123'},
         queryParams: {'name': 'test', 'active': 'true'},
         extra: {'obj': 'value'},
       );
 
-      expect(settings.getString('id'), '123');
-      expect(settings.getInt('id'), 123);
-      expect(settings.getString('name'), 'test');
-      expect(settings.getBool('active'), true);
-      expect(settings.getExtra<String>('obj'), 'value');
+      expect(data.getString('id'), '123');
+      expect(data.getInt('id'), 123);
+      expect(data.getString('name'), 'test');
+      expect(data.getBool('active'), true);
+      expect(data.getExtra<String>('obj'), 'value');
     });
 
     test('validates required parameters', () {
-      final settings = TpRouteSettings(pathParams: {}, queryParams: {});
-      expect(() => settings.getStringRequired('id'), throwsArgumentError);
+      final data = MockRouteData(
+        fullPath: '/',
+        pathParams: {},
+        queryParams: {},
+        extra: {},
+      );
+      expect(() => data.getStringRequired('id'), throwsArgumentError);
     });
   });
 
@@ -29,16 +35,16 @@ void main() {
     final homeRoute = TpRouteInfo(
       path: '/home',
       isInitial: true,
-      builder: (s) => const Text('Home Page'),
+      builder: (data) => const Text('Home Page'),
     );
 
     final userRoute = TpRouteInfo(
       path: '/user/:id',
       name: 'user', // Named route
-      builder: (s) => Text('User ${s.getInt('id')}'),
+      builder: (data) => Text('User ${data.getInt('id')}'),
     );
 
-    testWidgets('initializes and navigates with pushPath', (tester) async {
+    testWidgets('initializes and navigates with tp', (tester) async {
       final router = TpRouter(routes: [homeRoute, userRoute]);
       await tester.pumpWidget(MaterialApp.router(
         routerConfig: router.routerConfig,
@@ -46,7 +52,7 @@ void main() {
 
       expect(find.text('Home Page'), findsOneWidget);
 
-      await router.pushPath('/user/42');
+      await router.tp(TpRouteData.fromPath('/user/42'));
       await tester.pumpAndSettle();
 
       expect(find.text('User 42'), findsOneWidget);
@@ -87,14 +93,14 @@ void main() {
       // Initial route /home
       expect(log, contains(matches(r'didPush .*home')));
 
-      await router.pushPath('/user/100');
+      await router.tp(TpRouteData.fromPath('/user/100'));
       await tester.pumpAndSettle();
 
       // Pushed /user/100 (matches /user/:id)
       expect(log, contains(matches(r'didPush .*user')));
     });
 
-    testWidgets('BaseRoute.tp navigates correctly (push, go, replacement)',
+    testWidgets('TpRouteData.tp navigates correctly (push, go, replacement)',
         (tester) async {
       final router = TpRouter(routes: [homeRoute, userRoute]);
       await tester.pumpWidget(MaterialApp.router(
@@ -103,7 +109,7 @@ void main() {
 
       expect(find.text('Home Page'), findsOneWidget);
 
-      // 1. Test push (default) via BaseRoute.tp
+      // 1. Test push (default) via TpRouteData.tp
       // MockRoute('/user/1') corresponds to userRoute with id=1
       const MockRoute('/user/1').tp(tester.element(find.text('Home Page')));
       await tester.pumpAndSettle();
@@ -117,7 +123,7 @@ void main() {
 
       // 2. Test replace usage
       // Re-navigate to User 1
-      await router.pushPath('/user/1');
+      await router.tp(TpRouteData.fromPath('/user/1'));
       await tester.pumpAndSettle();
       expect(find.text('User 1'), findsOneWidget);
 
@@ -134,7 +140,7 @@ void main() {
 
       // 3. Test go (clearHistory)
       // Push User 1 again
-      await router.pushPath('/user/1');
+      await router.tp(TpRouteData.fromPath('/user/1'));
       await tester.pumpAndSettle();
 
       // Go to User 3 (clears history)
@@ -147,7 +153,7 @@ void main() {
     testWidgets('push returns value from pop', (tester) async {
       final returnRoute = TpRouteInfo(
         path: '/return',
-        builder: (s) => const Text('Return Page'),
+        builder: (data) => const Text('Return Page'),
       );
 
       final router = TpRouter(routes: [homeRoute, returnRoute]);
@@ -155,7 +161,7 @@ void main() {
         routerConfig: router.routerConfig,
       ));
 
-      final future = router.pushPath<String>('/return');
+      final future = router.tp<String>(TpRouteData.fromPath('/return'));
       await tester.pumpAndSettle();
       expect(find.text('Return Page'), findsOneWidget);
 
@@ -171,11 +177,11 @@ void main() {
       final tab1 = TpRouteInfo(
         path: '/tab1',
         isInitial: true,
-        builder: (s) => const CounterWidget(),
+        builder: (data) => const CounterWidget(),
       );
       final tab2 = TpRouteInfo(
         path: '/tab2',
-        builder: (s) => const Text('Tab 2 Content'),
+        builder: (data) => const Text('Tab 2 Content'),
       );
 
       final shellRoute = TpStatefulShellRouteInfo(
@@ -244,13 +250,32 @@ class TestNavigatorObserver extends NavigatorObserver {
   }
 }
 
-class MockRoute extends BaseRoute {
+class MockRoute extends TpRouteData {
   @override
   final String fullPath;
   @override
   final Map<String, dynamic> extra;
 
   const MockRoute(this.fullPath, {this.extra = const {}});
+}
+
+/// Mock route data for testing parameter parsing.
+class MockRouteData extends TpRouteData {
+  @override
+  final String fullPath;
+  @override
+  final Map<String, String> pathParams;
+  @override
+  final Map<String, String> queryParams;
+  @override
+  final Map<String, dynamic> extra;
+
+  const MockRouteData({
+    required this.fullPath,
+    required this.pathParams,
+    required this.queryParams,
+    required this.extra,
+  });
 }
 
 class CounterWidget extends StatefulWidget {
