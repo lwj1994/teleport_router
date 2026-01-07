@@ -223,6 +223,10 @@ targets:
           output: lib/routes/app_routes.dart
 ```
 
-## 许可证
+---
 
-MIT License
+## 迁移指南
+
+正在考虑从 `go_router` 或 `auto_router` 切换？查看我们的[迁移指南](MIGRATION_zh.md)。
+
+## 许可证

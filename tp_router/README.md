@@ -223,6 +223,10 @@ targets:
           output: lib/routes/app_routes.dart
 ```
 
-## License
+---
 
-MIT License
+## Migration Guide
+
+Thinking about switching from `go_router` or `auto_router`? Check out our [Migration Guide](MIGRATION.md).
+
+## License
