@@ -7,34 +7,36 @@ class ReportsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: ElevatedButton(
-            onPressed: () => context.tpRouter.pop(),
-            child: const Text('Back to Overview'),
+    return Scaffold(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: () => context.tpRouter.pop(),
+              child: const Text('Back to Overview'),
+            ),
           ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: 20,
-            itemBuilder: (context, index) {
-              return ListTile(
-                leading: const Icon(Icons.file_copy),
-                title: Text('Report #${index + 1}'),
-                subtitle: Text(
-                    'Generated on ${DateTime.now().toString().split(' ')[0]}'),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Opening Report #${index + 1}')),
-                  );
-                },
-              );
-            },
+          Expanded(
+            child: ListView.builder(
+              itemCount: 20,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  leading: const Icon(Icons.file_copy),
+                  title: Text('Report #${index + 1}'),
+                  subtitle: Text(
+                      'Generated on ${DateTime.now().toString().split(' ')[0]}'),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Opening Report #${index + 1}')),
+                    );
+                  },
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
