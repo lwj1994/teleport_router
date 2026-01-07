@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
 
 /// Settings page - simple route without parameters.
-@TpRoute(path: '/settings', name: 'settings')
+@TpRoute(
+  path: '/settings',
+  name: 'settings',
+  parentNavigatorKey: 'main',
+  branchIndex: 1,
+)
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 

@@ -178,14 +178,19 @@ class TpShellRouteInfo extends TpRouteBase {
   /// The list of routes that will be displayed within the shell.
   final List<TpRouteBase> routes;
 
+  /// Optional navigator key for this shell.
+  final GlobalKey<NavigatorState>? navigatorKey;
+
   const TpShellRouteInfo({
     required this.builder,
     required this.routes,
+    this.navigatorKey,
   });
 
   @override
   RouteBase toGoRoute({TpRouterConfig? config}) {
     return ShellRoute(
+      navigatorKey: navigatorKey,
       builder: (context, state, child) {
         // We wrap the GoRouter state away, exposing just context and child
         return builder(context, child);
@@ -226,9 +231,13 @@ class TpStatefulShellRouteInfo extends TpRouteBase {
   /// The branches (tabs), each containing a list of routes.
   final List<List<TpRouteBase>> branches;
 
+  /// Optional navigator keys for each branch.
+  final List<GlobalKey<NavigatorState>>? branchNavigatorKeys;
+
   const TpStatefulShellRouteInfo({
     required this.builder,
     required this.branches,
+    this.branchNavigatorKeys,
   });
 
   @override
@@ -237,8 +246,14 @@ class TpStatefulShellRouteInfo extends TpRouteBase {
       builder: (context, state, navigationShell) {
         return builder(context, TpStatefulNavigationShell(navigationShell));
       },
-      branches: branches.map((routes) {
+      branches: branches.asMap().entries.map((entry) {
+        final index = entry.key;
+        final routes = entry.value;
         return StatefulShellBranch(
+          navigatorKey:
+              branchNavigatorKeys != null && index < branchNavigatorKeys!.length
+                  ? branchNavigatorKeys![index]
+                  : null,
           routes: routes.map((r) => r.toGoRoute(config: config)).toList(),
         );
       }).toList(),

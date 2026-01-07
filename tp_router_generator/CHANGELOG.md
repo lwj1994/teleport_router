@@ -1,3 +1,10 @@
+## 0.1.0
+
+* Simplified generated code for extra parameter extraction.
+* Removed unnecessary type casts in generated builder functions.
+* Improved code formatting and indentation.
+* Auto-import complex parameter types.
+
 ## 0.0.1
 
 * Initial release.

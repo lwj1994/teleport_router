@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
 
-@TpRoute(path: '/dashboard/analytics')
+@TpRoute(path: '/dashboard/analytics', parentNavigatorKey: 'dashboard')
 class AnalyticsPage extends StatelessWidget {
   const AnalyticsPage({super.key});
 

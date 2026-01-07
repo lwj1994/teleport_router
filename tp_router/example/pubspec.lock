@@ -459,22 +459,21 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.0.2"
+    version: "0.1.0"
   tp_router_annotation:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: tp_router_annotation
-      sha256: ffa18a82d031bbdb133e390f793838d900f96b9c6156200b572a16200261a14c
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.1"
+      path: "../../tp_router_annotation"
+      relative: true
+    source: path
+    version: "0.1.0"
   tp_router_generator:
     dependency: "direct dev"
     description:
       path: "../../tp_router_generator"
       relative: true
     source: path
-    version: "0.0.3"
+    version: "0.1.0"
   typed_data:
     dependency: transitive
     description:

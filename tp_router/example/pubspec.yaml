@@ -19,6 +19,11 @@ dev_dependencies:
     path: ../../tp_router_generator
   flutter_lints: ^5.0.0
 
+dependency_overrides:
+  tp_router_annotation:
+    path: ../../tp_router_annotation
+  tp_router_generator:
+    path: ../../tp_router_generator
 
 flutter:
   uses-material-design: true

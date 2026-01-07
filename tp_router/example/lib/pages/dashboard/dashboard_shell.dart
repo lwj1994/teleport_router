@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
-import 'analytics_page.dart';
-import 'reports_page.dart';
-import 'dashboard_overview_page.dart';
 
 @TpShellRoute(
-  children: [DashboardOverviewPage, AnalyticsPage, ReportsPage],
+  navigatorKey: 'dashboard',
+  parentNavigatorKey: 'main',
+  branchIndex: 2,
 )
 class DashboardShell extends StatelessWidget {
   final Widget child;

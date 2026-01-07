@@ -27,12 +27,12 @@ Add the following to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  tp_router: ^0.0.1
-  tp_router_annotation: ^0.0.1
+  tp_router: ^0.1.0
+  tp_router_annotation: ^0.1.0
 
 dev_dependencies:
   build_runner: ^2.4.0
-  tp_router_generator: ^0.0.1
+  tp_router_generator: ^0.1.0
 ```
 
 ## Getting Started
@@ -178,19 +178,23 @@ class ProtectedPage extends StatelessWidget { ... }
 
 ### Shell Routes (Nested Navigation)
 
-Use `@TpShellRoute` or `@TpStatefulShellRoute` for nested navigation (e.g., Bottom Navigation Bars).
+TpRouter provides a powerful and decoupled way to define shell routes using **keys**. Instead of manually listing children, you simply assign a `navigatorKey` to a shell and associate child routes using `parentNavigatorKey`.
+
+This approach keeps your code clean and modular, perfect for complex apps!
+
+#### 1. Define a Shell Route
+Assign a unique `navigatorKey` to your shell layout.
 
 ```dart
-@TpStatefulShellRoute(
-  branches: [
-    [HomeRoute],
-    [SettingsRoute],
-  ],
+// Stateful Shell (e.g., BottomNavigationBar)
+@TpShellRoute(
+  navigatorKey: 'main', 
+  isIndexedStack: true, // Preserves state of each branch
 )
 class MainShellPage extends StatelessWidget {
   final TpStatefulNavigationShell navigationShell;
   
-  const MainShellPage({required this.navigationShell});
+  const MainShellPage({required this.navigationShell, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -198,12 +202,47 @@ class MainShellPage extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: navigationShell.currentIndex,
+        // Helper method to switch branches
         onTap: (index) => navigationShell.goBranch(index),
-        items: [ ... ],
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+        ],
       ),
     );
   }
 }
+```
+
+#### 2. Associate Child Routes
+Simply add `parentNavigatorKey` to any route that belongs to a shell.
+For stateful shells (tabs), use `branchIndex` to assign the route to a specific tab.
+
+```dart
+// Branch 0: Home
+@TpRoute(path: '/', parentNavigatorKey: 'main', branchIndex: 0)
+class HomePage extends StatelessWidget { ... }
+
+// Branch 1: Settings
+@TpRoute(path: '/settings', parentNavigatorKey: 'main', branchIndex: 1)
+class SettingsPage extends StatelessWidget { ... }
+```
+
+#### 3. Nested Shells (Advanced)
+You can even nest a shell inside another shell! Just treat the inner shell as a child of the outer shell.
+
+```dart
+// A shell inside the 'main' shell's 3rd branch
+@TpShellRoute(
+  navigatorKey: 'dashboard',   // This shell's own key
+  parentNavigatorKey: 'main',  // Parent shell's key
+  branchIndex: 2,              // Place in branch 2 of 'main'
+)
+class DashboardShell extends StatelessWidget { ... }
+
+// Children of the nested 'dashboard' shell
+@TpRoute(path: '/dashboard/stats', parentNavigatorKey: 'dashboard')
+class StatsPage extends StatelessWidget { ... }
 ```
 
 ---

@@ -8,7 +8,7 @@ import 'package:tp_router/tp_router.dart';
 /// ```dart
 /// context.tpRouter.tp(HomeRoute());
 /// ```
-@TpRoute(path: '/', isInitial: true)
+@TpRoute(path: '/', isInitial: true, parentNavigatorKey: 'main', branchIndex: 0)
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 

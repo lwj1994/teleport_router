@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
-import 'home_page.dart';
-import 'settings_page.dart';
-import 'dashboard/dashboard_shell.dart';
 
 @TpShellRoute(
-  children: [HomePage, SettingsPage, DashboardShell],
+  navigatorKey: 'main',
   isIndexedStack: true,
 )
 class MainShellPage extends StatelessWidget {

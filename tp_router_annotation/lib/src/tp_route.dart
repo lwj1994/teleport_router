@@ -67,6 +67,26 @@ class TpRoute {
   /// ```
   final dynamic redirect;
 
+  /// Optional key of the parent shell.
+  ///
+  /// Specify the `navigatorKey` of the [TpShellRoute] that this route belongs to.
+  ///
+  /// Example:
+  /// ```dart
+  /// @TpRoute(path: '/home', parentNavigatorKey: 'main')
+  /// class HomePage extends StatelessWidget { ... }
+  /// ```
+  final String? parentNavigatorKey;
+
+  /// Branch index when used with a StatefulShellRoute (isIndexedStack: true).
+  ///
+  /// Routes with the same `parentNavigatorKey` but different `branchIndex` will be
+  /// placed in separate branches. Routes with the same `branchIndex` will be
+  /// in the same branch (as nested routes).
+  ///
+  /// Default is 0.
+  final int branchIndex;
+
   /// Creates a [TpRoute] annotation.
   const TpRoute({
     this.path,
@@ -76,6 +96,8 @@ class TpRoute {
     this.transition,
     this.transitionDuration = const Duration(milliseconds: 300),
     this.reverseTransitionDuration = const Duration(milliseconds: 300),
+    this.parentNavigatorKey,
+    this.branchIndex = 0,
   });
 }
 
@@ -121,7 +143,8 @@ abstract class TpTransitionsBuilder {
 /// Annotation to mark a widget class as a shell route.
 ///
 /// A shell route wraps other routes with a common UI (like a bottom navigation
-/// bar or side drawer). There are two modes:
+/// bar or side drawer). Child routes are automatically associated via the
+/// `navigatorKey` parameter on `@TpRoute`.
 ///
 /// ## Mode 1: Regular ShellRoute (`isIndexedStack: false`)
 ///
@@ -129,7 +152,7 @@ abstract class TpTransitionsBuilder {
 /// The shell widget receives a `child` parameter.
 ///
 /// ```dart
-/// @TpShellRoute(children: [HomePage, SettingsPage])
+/// @TpShellRoute(navigatorKey: 'main')
 /// class MainShell extends StatelessWidget {
 ///   final Widget child;
 ///   const MainShell({required this.child, super.key});
@@ -142,19 +165,20 @@ abstract class TpTransitionsBuilder {
 ///     );
 ///   }
 /// }
+///
+/// @TpRoute(path: '/home', navigatorKey: 'main')
+/// class HomePage extends StatelessWidget { ... }
 /// ```
 ///
 /// ## Mode 2: StatefulShellRoute with IndexedStack (`isIndexedStack: true`)
 ///
 /// For bottom navigation bars where each tab maintains its own navigation
 /// state. The shell widget receives a `navigationShell` parameter of type
-/// [TpStatefulNavigationShell].
+/// [TpStatefulNavigationShell]. Use `branchIndex` on child routes to specify
+/// which branch they belong to.
 ///
 /// ```dart
-/// @TpShellRoute(
-///   children: [HomePage, SettingsPage, ProfilePage],
-///   isIndexedStack: true,
-/// )
+/// @TpShellRoute(navigatorKey: 'main', isIndexedStack: true)
 /// class MainShell extends StatelessWidget {
 ///   final TpStatefulNavigationShell navigationShell;
 ///   const MainShell({required this.navigationShell, super.key});
@@ -171,12 +195,30 @@ abstract class TpTransitionsBuilder {
 ///     );
 ///   }
 /// }
+///
+/// @TpRoute(path: '/home', navigatorKey: 'main', branchIndex: 0)
+/// class HomePage extends StatelessWidget { ... }
+///
+/// @TpRoute(path: '/settings', navigatorKey: 'main', branchIndex: 1)
+/// class SettingsPage extends StatelessWidget { ... }
 /// ```
 class TpShellRoute {
-  /// The list of child page types that this shell wraps.
+  /// The key to identify this shell route.
   ///
-  /// Each child becomes a branch when [isIndexedStack] is true.
-  final List<Type> children;
+  /// Child routes with matching `parentNavigatorKey` in their `@TpRoute` annotation
+  /// will be automatically grouped under this shell.
+  final String navigatorKey;
+
+  /// Optional key of the parent shell.
+  ///
+  /// If provided, this shell route will be nested inside the specified parent
+  /// shell route.
+  final String? parentNavigatorKey;
+
+  /// Branch index when used within a parent StatefulShellRoute.
+  ///
+  /// Default is 0.
+  final int branchIndex;
 
   /// Whether to use StatefulShellRoute.indexedStack.
   ///
@@ -187,7 +229,9 @@ class TpShellRoute {
 
   /// Creates a [TpShellRoute] annotation.
   const TpShellRoute({
-    required this.children,
+    required this.navigatorKey,
+    this.parentNavigatorKey,
+    this.branchIndex = 0,
     this.isIndexedStack = false,
   });
 }
