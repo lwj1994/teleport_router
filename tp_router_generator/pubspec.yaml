@@ -1,6 +1,6 @@
 name: tp_router_generator
 description: Code generator for tp_router annotations.
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/lwj1994/tp_router
 
 environment:
@@ -10,10 +10,10 @@ dependency_overrides:
     path: ../tp_router_annotation
   
 dependencies:
-  build: ^2.4.0
-  source_gen: ^1.2.0
-  analyzer: ^6.0.0
+  analyzer: ^8.4.1
+  build: ^4.0.3
   glob: ^2.1.0
+  source_gen: ^4.1.0
   tp_router_annotation: ^0.0.1
 
 dev_dependencies:

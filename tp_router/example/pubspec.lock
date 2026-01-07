@@ -443,13 +443,14 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.0.1"
+    version: "0.0.2"
   tp_router_annotation:
     dependency: transitive
     description:
-      path: "../../tp_router_annotation"
-      relative: true
-    source: path
+      name: tp_router_annotation
+      sha256: ffa18a82d031bbdb133e390f793838d900f96b9c6156200b572a16200261a14c
+      url: "https://pub.dev"
+    source: hosted
     version: "0.0.1"
   tp_router_generator:
     dependency: "direct dev"
@@ -523,5 +524,5 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.9.0 <=3.9.9"
+  dart: ">=3.9.0 <4.0.0"
   flutter: ">=3.22.0"
