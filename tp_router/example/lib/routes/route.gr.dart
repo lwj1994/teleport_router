@@ -33,8 +33,7 @@ class AnalyticsRoute extends TpRouteData {
   static final TpRouteInfo routeInfo = TpRouteInfo(
     path: '/dashboard/analytics',
     isInitial: false,
-    params: [
-    ],
+    params: [],
     builder: (settings) {
       return AnalyticsPage();
     },
@@ -45,9 +44,7 @@ class AnalyticsRoute extends TpRouteData {
     var p = '/dashboard/analytics';
     return p;
   }
-
 }
-
 
 /// Route class for [DashboardOverviewPage].
 ///
@@ -65,8 +62,7 @@ class DashboardOverviewRoute extends TpRouteData {
   static final TpRouteInfo routeInfo = TpRouteInfo(
     path: '/dashboard/overview',
     isInitial: false,
-    params: [
-    ],
+    params: [],
     builder: (settings) {
       return DashboardOverviewPage();
     },
@@ -77,9 +73,7 @@ class DashboardOverviewRoute extends TpRouteData {
     var p = '/dashboard/overview';
     return p;
   }
-
 }
-
 
 class DashboardShellRoute {
   static final TpShellRouteInfo routeInfo = TpShellRouteInfo(
@@ -91,7 +85,6 @@ class DashboardShellRoute {
     ],
   );
 }
-
 
 /// Route class for [ReportsPage].
 ///
@@ -109,8 +102,7 @@ class ReportsRoute extends TpRouteData {
   static final TpRouteInfo routeInfo = TpRouteInfo(
     path: '/dashboard/reports',
     isInitial: false,
-    params: [
-    ],
+    params: [],
     builder: (settings) {
       return ReportsPage();
     },
@@ -121,9 +113,7 @@ class ReportsRoute extends TpRouteData {
     var p = '/dashboard/reports';
     return p;
   }
-
 }
-
 
 /// Route class for [DetailsPage].
 ///
@@ -164,25 +154,24 @@ class DetailsRoute extends TpRouteData {
       ),
     ],
     builder: (settings) {
-    final title = (() {
-      final extraValue = settings.extra['title'];
-      if (extraValue is String) {
-        return extraValue;
-      }
-      return settings.pathParams['title'] ?? settings.queryParams['title'] ?? null;
-    })();
-    final level = (() {
-
-      final raw = settings.queryParams['level'];
-      if (raw == null) {
-        return null;
-      }
-      final parsed = int.tryParse(raw);
-      if (parsed == null) {
-        return null;
-      }
-      return parsed;
-    })();
+      final title = (() {
+        final extraValue = settings.extra['title'];
+        if (extraValue is String) {
+          return extraValue;
+        }
+        return settings.pathParams['title'] ?? settings.queryParams['title'];
+      })();
+      final level = (() {
+        final raw = settings.queryParams['level'];
+        if (raw == null) {
+          return null;
+        }
+        final parsed = int.tryParse(raw);
+        if (parsed == null) {
+          return null;
+        }
+        return parsed;
+      })();
       return DetailsPage(title: (title ?? 'Details'), level: (level ?? 1));
     },
     transition: const TpSlideTransition(),
@@ -201,11 +190,9 @@ class DetailsRoute extends TpRouteData {
 
   @override
   Map<String, dynamic> get extra => {
-    'title': title,
-  };
-
+        'title': title,
+      };
 }
-
 
 /// Route class for [HomePage].
 ///
@@ -223,8 +210,7 @@ class HomeRoute extends TpRouteData {
   static final TpRouteInfo routeInfo = TpRouteInfo(
     path: '/',
     isInitial: true,
-    params: [
-    ],
+    params: [],
     builder: (settings) {
       return HomePage();
     },
@@ -235,9 +221,7 @@ class HomeRoute extends TpRouteData {
     var p = '/';
     return p;
   }
-
 }
-
 
 /// Route class for [LoginPage].
 ///
@@ -255,8 +239,7 @@ class LoginRoute extends TpRouteData {
   static final TpRouteInfo routeInfo = TpRouteInfo(
     path: '/login',
     isInitial: false,
-    params: [
-    ],
+    params: [],
     builder: (settings) {
       return LoginPage();
     },
@@ -267,13 +250,12 @@ class LoginRoute extends TpRouteData {
     var p = '/login';
     return p;
   }
-
 }
-
 
 class MainShellRoute {
   static final TpStatefulShellRouteInfo routeInfo = TpStatefulShellRouteInfo(
-    builder: (context, navigationShell) => MainShellPage(navigationShell: navigationShell),
+    builder: (context, navigationShell) =>
+        MainShellPage(navigationShell: navigationShell),
     branches: [
       [
         HomeRoute.routeInfo,
@@ -288,7 +270,6 @@ class MainShellRoute {
   );
 }
 
-
 /// Route class for [MemoryDetailPage].
 ///
 /// Usage:
@@ -301,7 +282,8 @@ class MemoryDetailRoute extends TpRouteData {
 
   const MemoryDetailRoute({
     required this.memory2,
-    this.memory = const MemoryDetail(id: 'internal', content: 'Internal Default'),
+    this.memory =
+        const MemoryDetail(id: 'internal', content: 'Internal Default'),
   });
 
   /// The route path.
@@ -328,27 +310,30 @@ class MemoryDetailRoute extends TpRouteData {
       ),
     ],
     builder: (settings) {
-    final memory2 = (() {
-      final extra = settings.extra;
-      if (extra.containsKey('memory2')) {
-        return extra['memory2'] as MemoryDetail;
-      }
-      if (extra is MemoryDetail) {
-        return extra as MemoryDetail;
-      }
-      throw ArgumentError('Missing required parameter: memory2');
-    })();
-    final memory = (() {
-      final extra = settings.extra;
-      if (extra.containsKey('memory')) {
-        return extra['memory'] as MemoryDetail;
-      }
-      if (extra is MemoryDetail) {
-        return extra as MemoryDetail;
-      }
-      return null;
-    })();
-      return MemoryDetailPage(memory2: memory2, memory: (memory ?? const MemoryDetail(id: 'internal', content: 'Internal Default')));
+      final memory2 = (() {
+        final extra = settings.extra;
+        if (extra.containsKey('memory2')) {
+          return extra['memory2'] as MemoryDetail;
+        }
+        if (extra is MemoryDetail) {
+          return extra;
+        }
+        throw ArgumentError('Missing required parameter: memory2');
+      })();
+      final memory = (() {
+        final extra = settings.extra;
+        if (extra.containsKey('memory')) {
+          return extra['memory'] as MemoryDetail;
+        }
+        if (extra is MemoryDetail) {
+          return extra;
+        }
+        return null;
+      })();
+      return MemoryDetailPage(
+          memory2: memory2,
+          memory: (memory ??
+              const MemoryDetail(id: 'internal', content: 'Internal Default')));
     },
   );
 
@@ -360,12 +345,10 @@ class MemoryDetailRoute extends TpRouteData {
 
   @override
   Map<String, dynamic> get extra => {
-    'memory2': memory2,
-    'memory': memory,
-  };
-
+        'memory2': memory2,
+        'memory': memory,
+      };
 }
-
 
 /// Route class for [ProtectedPage].
 ///
@@ -383,8 +366,7 @@ class ProtectedRoute extends TpRouteData {
   static final TpRouteInfo routeInfo = TpRouteInfo(
     path: '/protected',
     isInitial: false,
-    params: [
-    ],
+    params: [],
     redirect: (context, _) async {
       final route = ProtectedRoute();
       return authRedirect(context, route);
@@ -399,9 +381,7 @@ class ProtectedRoute extends TpRouteData {
     var p = '/protected';
     return p;
   }
-
 }
-
 
 /// Route class for [SettingsPage].
 ///
@@ -420,8 +400,7 @@ class SettingsRoute extends TpRouteData {
     path: '/settings',
     name: 'settings',
     isInitial: false,
-    params: [
-    ],
+    params: [],
     builder: (settings) {
       return SettingsPage();
     },
@@ -432,9 +411,7 @@ class SettingsRoute extends TpRouteData {
     var p = '/settings';
     return p;
   }
-
 }
-
 
 /// Route class for [UserPage].
 ///
@@ -485,31 +462,29 @@ class UserRoute extends TpRouteData {
       ),
     ],
     builder: (settings) {
-    final id = (() {
-
-      final raw = settings.pathParams['id'];
-      if (raw == null) {
-        throw ArgumentError('Missing required parameter: id');
-      }
-      final parsed = int.tryParse(raw);
-      if (parsed == null) {
-        throw ArgumentError('Invalid int value for: id');
-      }
-      return parsed;
-    })();
-    final name = settings.queryParams['name'];
-    final age = (() {
-
-      final raw = settings.queryParams['age'];
-      if (raw == null) {
-        return null;
-      }
-      final parsed = int.tryParse(raw);
-      if (parsed == null) {
-        return null;
-      }
-      return parsed;
-    })();
+      final id = (() {
+        final raw = settings.pathParams['id'];
+        if (raw == null) {
+          throw ArgumentError('Missing required parameter: id');
+        }
+        final parsed = int.tryParse(raw);
+        if (parsed == null) {
+          throw ArgumentError('Invalid int value for: id');
+        }
+        return parsed;
+      })();
+      final name = settings.queryParams['name'];
+      final age = (() {
+        final raw = settings.queryParams['age'];
+        if (raw == null) {
+          return null;
+        }
+        final parsed = int.tryParse(raw);
+        if (parsed == null) {
+          return null;
+        }
+        return parsed;
+      })();
       return UserPage(id: id, name: (name ?? ''), age: (age ?? 0));
     },
   );
@@ -524,9 +499,7 @@ class UserRoute extends TpRouteData {
     if (queryParts.isNotEmpty) p = '$p?${queryParts.join('&')}';
     return p;
   }
-
 }
-
 
 /// All generated routes in the application.
 ///
@@ -535,10 +508,10 @@ class UserRoute extends TpRouteData {
 /// final router = TpRouter(routes: tpRoutes);
 /// ```
 List<TpRouteBase> get tpRoutes => [
-  DetailsRoute.routeInfo,
-  LoginRoute.routeInfo,
-  MainShellRoute.routeInfo,
-  MemoryDetailRoute.routeInfo,
-  ProtectedRoute.routeInfo,
-  UserRoute.routeInfo,
-];
+      DetailsRoute.routeInfo,
+      LoginRoute.routeInfo,
+      MainShellRoute.routeInfo,
+      MemoryDetailRoute.routeInfo,
+      ProtectedRoute.routeInfo,
+      UserRoute.routeInfo,
+    ];

@@ -437,7 +437,6 @@ class TpRouterBuilder implements Builder {
     buffer.writeln('/// final router = TpRouter(routes: tpRoutes);');
     buffer.writeln('/// ```');
     buffer.writeln('List<TpRouteBase> get tpRoutes => [');
-
     // Find child routes to exclude from root list
     final childRouteNames = <String>{};
     for (final route in allRoutes) {
@@ -449,10 +448,10 @@ class TpRouterBuilder implements Builder {
     // Generate root routes
     for (final route in allRoutes) {
       if (!childRouteNames.contains(route.className)) {
-        buffer.writeln('  ${route.routeClassName}.routeInfo,');
+        buffer.writeln('      ${route.routeClassName}.routeInfo,');
       }
     }
-    buffer.writeln('];');
+    buffer.writeln('    ];');
 
     return buffer.toString();
   }
@@ -796,21 +795,21 @@ class TpRouterBuilder implements Builder {
       String parseMethod, {
       bool isBool = false,
     }) {
-      return '''    final $name = (() {
-${generateExtraCheck(type)}
-      final raw = $stringSourceAccess;
-      if (raw == null) {
-        ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
-      }
-      ${isBool ? '''final lower = raw.toLowerCase();
-      if (lower == 'true' || lower == '1' || lower == 'yes') return true;
-      if (lower == 'false' || lower == '0' || lower == 'no') return false;
-      ${isRequired ? "throw ArgumentError('Invalid bool value for: $name');" : "return null;"}''' : '''final parsed = $parseMethod(raw);
-      if (parsed == null) {
-        ${isRequired ? "throw ArgumentError('Invalid $type value for: $name');" : "return null;"}
-      }
-      return parsed;'''}
-    })();''';
+      final extraCheck = generateExtraCheck(type);
+      return '''      final $name = (() {
+${extraCheck.isNotEmpty ? '$extraCheck\n' : ''}        final raw = $stringSourceAccess;
+        if (raw == null) {
+          ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
+        }
+        ${isBool ? '''final lower = raw.toLowerCase();
+        if (lower == 'true' || lower == '1' || lower == 'yes') return true;
+        if (lower == 'false' || lower == '0' || lower == 'no') return false;
+        ${isRequired ? "throw ArgumentError('Invalid bool value for: $name');" : "return null;"}''' : '''final parsed = $parseMethod(raw);
+        if (parsed == null) {
+          ${isRequired ? "throw ArgumentError('Invalid $type value for: $name');" : "return null;"}
+        }
+        return parsed;'''}
+      })();''';
     }
 
     // Generate type-specific extraction
@@ -836,21 +835,21 @@ ${generateExtraCheck(type)}
 
         // String case: check extra (if typed String), then fallback string source
         if (checkExtra) {
-          return '''    final $name = (() {
-      final extraValue = settings.extra['$urlName'];
-      if (extraValue is String) {
-        return extraValue;
-      }
-      return $stringSourceAccess ?? ${isRequired ? "(throw ArgumentError('Missing required parameter: $name'))" : "null"};
-    })();''';
+          return '''      final $name = (() {
+        final extraValue = settings.extra['$urlName'];
+        if (extraValue is String) {
+          return extraValue;
+        }
+        return $stringSourceAccess ?? ${isRequired ? "(throw ArgumentError('Missing required parameter: $name'))" : "null"};
+      })();''';
         }
 
         // Path/Query String case (source is 'path' or 'query')
         if (isRequired) {
-          return '''    final $name = ($stringSourceAccess ??
-        (throw ArgumentError('Missing required parameter: $name')));''';
+          return '''      final $name = ($stringSourceAccess ??
+          (throw ArgumentError('Missing required parameter: $name')));''';
         } else {
-          return '''    final $name = $stringSourceAccess;''';
+          return '''      final $name = $stringSourceAccess;''';
         }
     }
   }
@@ -862,16 +861,16 @@ ${generateExtraCheck(type)}
     final type = p.type;
     final isRequired = p.isRequired;
 
-    return '''    final $name = (() {
-      final extra = settings.extra;
-      if (extra.containsKey('$urlName')) {
-        return extra['$urlName'] as $type;
-      }
-      if (extra is ${p.baseType}) {
-        return extra as $type;
-      }
-      ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
-    })();''';
+    return '''      final $name = (() {
+        final extra = settings.extra;
+        if (extra.containsKey('$urlName')) {
+          return extra['$urlName'] as $type;
+        }
+        if (extra is ${p.baseType}) {
+          return extra as $type;
+        }
+        ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
+      })();''';
   }
 
   /// Gets the base type without nullability suffix.
