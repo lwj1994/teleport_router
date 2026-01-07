@@ -227,6 +227,6 @@ targets:
 
 ## 迁移指南
 
-正在考虑从 `go_router` 或 `auto_router` 切换？查看我们的[迁移指南](MIGRATION_zh.md)。
+正在考虑从 `go_router` 或 `auto_router` 切换？查看我们的[迁移指南](https://github.com/lwj1994/tp_router/blob/main/tp_router/MIGRATION_zh.md)。
 
 ## 许可证

@@ -227,6 +227,6 @@ targets:
 
 ## Migration Guide
 
-Thinking about switching from `go_router` or `auto_router`? Check out our [Migration Guide](MIGRATION.md).
+Thinking about switching from `go_router` or `auto_router`? Check out our [Migration Guide](https://github.com/lwj1994/tp_router/blob/main/tp_router/MIGRATION.md).
 
 ## License
