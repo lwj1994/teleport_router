@@ -4,4 +4,7 @@ import 'src/tp_route_generator.dart';
 /// Builder factory for tp_router_generator.
 ///
 /// This creates a single tp_router.g.dart file with all routes.
-Builder tpRouterBuilder(BuilderOptions options) => TpRouterBuilder();
+Builder tpRouterBuilder(BuilderOptions options) {
+  final output = options.config['output'] as String? ?? 'lib/tp_router.g.dart';
+  return TpRouterBuilder(output: output);
+}

@@ -49,10 +49,11 @@ void main() {
       await tester.pumpWidget(MaterialApp.router(
         routerConfig: router.routerConfig,
       ));
+      await tester.pumpAndSettle();
 
       expect(find.text('Home Page'), findsOneWidget);
 
-      await router.tp(TpRouteData.fromPath('/user/42'));
+      router.tp(TpRouteData.fromPath('/user/42'));
       await tester.pumpAndSettle();
 
       expect(find.text('User 42'), findsOneWidget);
@@ -62,8 +63,9 @@ void main() {
       final router = TpRouter(
         routes: [homeRoute, userRoute],
         redirect: (context, state) {
-          if (state.uri.path == '/home') {
-            return '/user/99';
+          print('Redirect check: ${state.fullPath}');
+          if (state.fullPath == '/home') {
+            return const MockRoute('/user/99');
           }
           return null;
         },
@@ -72,9 +74,42 @@ void main() {
       await tester.pumpWidget(MaterialApp.router(
         routerConfig: router.routerConfig,
       ));
+      await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
       // Should be redirected from /home to /user/99
       expect(find.text('User 99'), findsOneWidget);
+    });
+
+    testWidgets('TpRouteInfo supports route-level redirect', (tester) async {
+      final protectedRoute = TpRouteInfo(
+          path: '/protected',
+          builder: (data) => const Text('Protected Page'),
+          redirect: (context, state) async {
+            // Mock auth check
+            bool authed = false;
+            if (!authed) {
+              return const MockRoute('/login');
+            }
+            return null;
+          });
+
+      final loginRoute = TpRouteInfo(
+          path: '/login', builder: (data) => const Text('Login Page'));
+
+      final router = TpRouter(routes: [homeRoute, protectedRoute, loginRoute]);
+
+      await tester.pumpWidget(MaterialApp.router(
+        routerConfig: router.routerConfig,
+      ));
+      await tester.pumpAndSettle();
+
+      // Goto protected
+      router.tp(TpRouteData.fromPath('/protected'));
+      await tester.pumpAndSettle();
+
+      // Should be redirected to /login
+      expect(find.text('Login Page'), findsOneWidget);
     });
 
     testWidgets('supports observers', (tester) async {
@@ -89,11 +124,12 @@ void main() {
       await tester.pumpWidget(MaterialApp.router(
         routerConfig: router.routerConfig,
       ));
+      await tester.pumpAndSettle();
 
       // Initial route /home
       expect(log, contains(matches(r'didPush .*home')));
 
-      await router.tp(TpRouteData.fromPath('/user/100'));
+      router.tp(TpRouteData.fromPath('/user/100'));
       await tester.pumpAndSettle();
 
       // Pushed /user/100 (matches /user/:id)
@@ -106,6 +142,7 @@ void main() {
       await tester.pumpWidget(MaterialApp.router(
         routerConfig: router.routerConfig,
       ));
+      await tester.pumpAndSettle();
 
       expect(find.text('Home Page'), findsOneWidget);
 
@@ -123,7 +160,7 @@ void main() {
 
       // 2. Test replace usage
       // Re-navigate to User 1
-      await router.tp(TpRouteData.fromPath('/user/1'));
+      router.tp(TpRouteData.fromPath('/user/1'));
       await tester.pumpAndSettle();
       expect(find.text('User 1'), findsOneWidget);
 
@@ -140,7 +177,7 @@ void main() {
 
       // 3. Test go (clearHistory)
       // Push User 1 again
-      await router.tp(TpRouteData.fromPath('/user/1'));
+      router.tp(TpRouteData.fromPath('/user/1'));
       await tester.pumpAndSettle();
 
       // Go to User 3 (clears history)
@@ -160,6 +197,7 @@ void main() {
       await tester.pumpWidget(MaterialApp.router(
         routerConfig: router.routerConfig,
       ));
+      await tester.pumpAndSettle();
 
       final future = router.tp<String>(TpRouteData.fromPath('/return'));
       await tester.pumpAndSettle();
@@ -208,6 +246,7 @@ void main() {
       await tester.pumpWidget(MaterialApp.router(
         routerConfig: router.routerConfig,
       ));
+      await tester.pumpAndSettle();
 
       // 1. Initial State: Tab 1, Count 0
       expect(find.text('Count: 0'), findsOneWidget);
@@ -229,6 +268,77 @@ void main() {
 
       // State Key Verification: Count should still be 1
       expect(find.text('Count: 1'), findsOneWidget);
+    });
+
+    testWidgets('supports nested ShellRoutes (Outer -> Inner -> Page)',
+        (tester) async {
+      // Leaf Page
+      final leafRoute = TpRouteInfo(
+        path: '/leaf',
+        isInitial: true,
+        builder: (data) => const Text('Leaf Page'),
+      );
+
+      // Inner Shell
+      final innerShellRoute = TpShellRouteInfo(
+        builder: (context, child) => Column(
+          key: const Key('InnerShell'),
+          children: [
+            const Text('Inner Header'),
+            Expanded(child: child),
+          ],
+        ),
+        routes: [leafRoute],
+      );
+
+      // Outer Shell
+      final outerShellRoute = TpShellRouteInfo(
+        builder: (context, child) => Column(
+          key: const Key('OuterShell'),
+          children: [
+            const Text('Outer Header'),
+            Expanded(child: child),
+          ],
+        ),
+        routes: [innerShellRoute],
+      );
+
+      final router = TpRouter(routes: [outerShellRoute]);
+
+      await tester.pumpWidget(MaterialApp.router(
+        routerConfig: router.routerConfig,
+      ));
+      await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
+      debugDumpApp();
+
+      // Navigate to leaf
+      // Initial route matching logic might default to /leaf if it's the only one available via traversal
+      // or we might need to explicit nav. behavior depends on _findInitialPath logic which drills down.
+      // Let's verify if auto-initial works:
+      // Outer -> Inner -> Leaf (path: /leaf)
+      // _findInitialPath should return /leaf.
+
+      expect(find.text('Leaf Page'), findsOneWidget);
+      expect(find.text('Inner Header'), findsOneWidget);
+      expect(find.text('Outer Header'), findsOneWidget);
+
+      // Verify Hierarchy
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('OuterShell')),
+          matching: find.byKey(const Key('InnerShell')),
+        ),
+        findsOneWidget,
+      );
+
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('InnerShell')),
+          matching: find.text('Leaf Page'),
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

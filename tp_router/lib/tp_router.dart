@@ -5,7 +5,7 @@ library tp_router;
 export 'package:tp_router_annotation/tp_router_annotation.dart';
 
 // Export router implementation
-export 'src/router/tp_route_info.dart';
-export 'src/router/tp_router.dart';
-export 'src/router/route.dart';
-export 'src/router/transitions.dart';
+export 'src/tp_route_info.dart';
+export 'src/tp_router.dart';
+export 'src/route.dart';
+export 'src/transitions.dart';

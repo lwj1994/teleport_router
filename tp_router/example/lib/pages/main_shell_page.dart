@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
 import 'home_page.dart';
 import 'settings_page.dart';
+import 'dashboard/dashboard_shell.dart';
 
 @TpShellRoute(
-  children: [HomePage, SettingsPage],
+  children: [HomePage, SettingsPage, DashboardShell],
   isIndexedStack: true,
 )
 class MainShellPage extends StatelessWidget {
@@ -33,6 +34,10 @@ class MainShellPage extends StatelessWidget {
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
           ),
         ],
       ),

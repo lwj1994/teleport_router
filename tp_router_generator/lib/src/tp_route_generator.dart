@@ -20,9 +20,13 @@ class TpRouterBuilder implements Builder {
     'package:tp_router_annotation/src/tp_route.dart#Query',
   );
 
+  final String output;
+
+  TpRouterBuilder({this.output = 'lib/tp_router.g.dart'});
+
   @override
   Map<String, List<String>> get buildExtensions => {
-    r'lib/$lib$': ['lib/tp_router.g.dart'],
+    r'lib/$lib$': [output],
   };
 
   @override
@@ -58,6 +62,11 @@ class TpRouterBuilder implements Builder {
               'package:${buildStep.inputId.package}/',
             );
             imports.add(importPath);
+
+            // Add redirect import if present
+            if (routeData.redirect?.importPath != null) {
+              imports.add(routeData.redirect!.importPath!);
+            }
           }
         }
 
@@ -84,13 +93,31 @@ class TpRouterBuilder implements Builder {
       }
     }
 
+    // Validate duplicate paths
+    _validateDuplicatePaths(allRoutes);
+
     if (allRoutes.isNotEmpty) {
       final content = _generateFile(allRoutes, imports);
-      final outputId = AssetId(
-        buildStep.inputId.package,
-        'lib/tp_router.g.dart',
-      );
+      final outputId = AssetId(buildStep.inputId.package, output);
       await buildStep.writeAsString(outputId, content);
+    }
+  }
+
+  void _validateDuplicatePaths(List<_BaseRouteData> routes) {
+    final pathMap = <String, String>{}; // Path -> RouteClassName
+
+    for (final route in routes) {
+      if (route is _RouteData) {
+        final path = route.path;
+        // Ignore checking parameters inside path logic for strict duplicates for now,
+        // just exact string match.
+        if (pathMap.containsKey(path)) {
+          throw InvalidGenerationSourceError(
+            'Duplicate path found: "$path" is defined in both ${pathMap[path]} and ${route.routeClassName}. Paths must be unique.',
+          );
+        }
+        pathMap[path] = route.routeClassName;
+      }
     }
   }
 
@@ -102,13 +129,19 @@ class TpRouterBuilder implements Builder {
   ) {
     final className = classElement.name;
 
-    // Extract annotation values
-    final path = annotation.read('path').stringValue;
-    final name = annotation.peek('name')?.stringValue;
-    final isInitial = annotation.read('isInitial').boolValue;
-
     // Generate route class name (remove Page/Screen suffix)
     final routeClassName = _generateRouteClassName(className!);
+
+    // Extract annotation values
+    var path = annotation.peek('path')?.stringValue;
+
+    // Auto-generate path if missing or empty
+    if (path == null || path.isEmpty) {
+      path = _generateKebabCasePath(className);
+    }
+
+    final name = annotation.peek('name')?.stringValue;
+    final isInitial = annotation.read('isInitial').boolValue;
 
     // Analyze constructor parameters
     final constructor = classElement.unnamedConstructor;
@@ -133,6 +166,7 @@ class TpRouterBuilder implements Builder {
       name: name,
       isInitial: isInitial,
       params: params,
+      redirect: _extractRedirect(annotation),
       transitionType: _extractTransitionType(annotation),
       transitionDuration: _extractDuration(annotation, 'transitionDuration'),
       reverseTransitionDuration: _extractDuration(
@@ -140,6 +174,57 @@ class TpRouterBuilder implements Builder {
         'reverseTransitionDuration',
       ),
     );
+  }
+
+  RedirectInfo? _extractRedirect(ConstantReader annotation) {
+    final redirectReader = annotation.peek('redirect');
+    if (redirectReader == null || redirectReader.isNull) return null;
+
+    final redirectObj = redirectReader.objectValue;
+
+    // Check if it's a Type (Class)
+    final typeValue = redirectObj.toTypeValue();
+    if (typeValue != null) {
+      final element = typeValue.element;
+      if (element is ClassElement && element.name != null) {
+        return RedirectInfo(
+          name: element.name!,
+          importPath: element.library.identifier,
+          isClass: true,
+        );
+      }
+    }
+
+    // Check if it's a function
+    final funcValue = redirectObj.toFunctionValue();
+    if (funcValue != null && funcValue.name != null) {
+      return RedirectInfo(
+        name: funcValue.name!,
+        importPath: funcValue.library.identifier,
+        isClass: false,
+      );
+    }
+
+    return null;
+  }
+
+  String _generateKebabCasePath(String className) {
+    var name = className;
+    if (name.endsWith('Page')) {
+      name = name.substring(0, name.length - 4);
+    } else if (name.endsWith('Screen')) {
+      name = name.substring(0, name.length - 6);
+    }
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < name.length; i++) {
+      final char = name[i];
+      if (i > 0 && char == char.toUpperCase()) {
+        buffer.write('-');
+      }
+      buffer.write(char.toLowerCase());
+    }
+    return '/${buffer.toString()}';
   }
 
   /// Extracts the transition type name from annotation.
@@ -489,6 +574,41 @@ class TpRouterBuilder implements Builder {
       buffer.writeln('      ),');
     }
     buffer.writeln('    ],');
+    if (route.redirect != null) {
+      buffer.writeln('    redirect: (context, state) async {');
+
+      buffer.writeln('      final settings = state;');
+      for (final param in route.params) {
+        buffer.writeln(_generateParamExtraction(param));
+      }
+
+      // Instantiate route
+      buffer.write('      final route = ${route.routeClassName}(');
+      final constructorArgs = <String>[];
+      for (final p in route.params) {
+        if (p.isNamed) {
+          if (!p.isRequired && p.defaultValueCode != null) {
+            constructorArgs.add(
+              '${p.name}: ${p.name} ?? ${p.defaultValueCode}',
+            );
+          } else {
+            constructorArgs.add('${p.name}: ${p.name}');
+          }
+        } else {
+          constructorArgs.add(p.name);
+        }
+      }
+      buffer.writeln('${constructorArgs.join(', ')});');
+
+      if (route.redirect!.isClass) {
+        buffer.writeln(
+          '      return const ${route.redirect!.name}().handle(context, route);',
+        );
+      } else {
+        buffer.writeln('      return ${route.redirect!.name}(context, route);');
+      }
+      buffer.writeln('    },');
+    }
     buffer.writeln('    builder: (settings) {');
     // Generate parameter extraction
     for (final param in route.params) {
@@ -769,6 +889,14 @@ class _AnnotationResult {
   _AnnotationResult({required this.source, this.name});
 }
 
+class RedirectInfo {
+  final String name;
+  final String? importPath;
+  final bool isClass;
+
+  RedirectInfo({required this.name, this.importPath, this.isClass = false});
+}
+
 /// Base data for any route.
 abstract class _BaseRouteData {
   String get className;
@@ -785,6 +913,7 @@ class _RouteData implements _BaseRouteData {
   final String? name;
   final bool isInitial;
   final List<_ParamData> params;
+  final RedirectInfo? redirect;
   final String? transitionType;
   final Duration transitionDuration;
   final Duration reverseTransitionDuration;
@@ -796,6 +925,7 @@ class _RouteData implements _BaseRouteData {
     required this.name,
     required this.isInitial,
     required this.params,
+    this.redirect,
     this.transitionType,
     this.transitionDuration = const Duration(milliseconds: 300),
     this.reverseTransitionDuration = const Duration(milliseconds: 300),

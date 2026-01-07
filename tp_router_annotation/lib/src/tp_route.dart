@@ -21,7 +21,12 @@ class TpRoute {
   /// The URL path for this route.
   ///
   /// Example: '/home', '/user/:id', '/settings'
-  final String path;
+  /// The URL path for this route.
+  ///
+  /// Example: '/home', '/user/:id', '/settings'
+  ///
+  /// If null or empty, it will be auto-generated from the class name.
+  final String? path;
 
   /// Optional name for the route.
   ///
@@ -51,11 +56,23 @@ class TpRoute {
   /// Reverse transition duration. Defaults to 300ms.
   final Duration reverseTransitionDuration;
 
+  /// A top-level function or static method to handle redirection.
+  ///
+  /// Signature: `FutureOr<TpRouteData?> redirect(BuildContext context, TpRouteData state)`
+  ///
+  /// Example:
+  /// ```dart
+  /// @TpRoute(path: '/protected', redirect: authRedirect)
+  /// class ProtectedPage extends StatelessWidget { ... }
+  /// ```
+  final dynamic redirect;
+
   /// Creates a [TpRoute] annotation.
   const TpRoute({
-    required this.path,
+    this.path,
     this.name,
     this.isInitial = false,
+    this.redirect,
     this.transition,
     this.transitionDuration = const Duration(milliseconds: 300),
     this.reverseTransitionDuration = const Duration(milliseconds: 300),

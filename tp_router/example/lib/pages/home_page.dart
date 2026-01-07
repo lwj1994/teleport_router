@@ -38,6 +38,20 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
+                const ProtectedRoute().tp(context);
+              },
+              child: const Text('Go to Protected Page'),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {
+                const DetailsRoute(title: 'From Home').tp(context);
+              },
+              child: const Text('Go to Details'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () {
                 // Type-safe navigation with unified tp() method
                 UserRoute(id: 123, name: 'John', age: 25).tp(context);
               },

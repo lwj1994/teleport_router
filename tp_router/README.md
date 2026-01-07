@@ -1,19 +1,18 @@
 # TpRouter
 
-A simplified, type-safe routing library built on top of `go_router` for Flutter. Integrate routing with just a single annotation!
+A simplified, type-safe, and annotation-driven routing library for Flutter, built on top of `go_router`.
+
+Stop writing boilerplate routing tables manually. Let `tp_router` handle it for you with strong typing and compile-time safety.
 
 ## Features
 
-- 🎯 **One-Line Annotation**: Mark your widget with `@TpRoute(path: '/xxx')`.
-- 🔄 **Auto Type Conversion**: Automatically convert parameters from String to `int`, `double`, `bool`, etc.
-- 🧩 **Smart Parameter Extraction**:
-  - Explicitly map to Path (`@Path`) or Query (`@Query`) parameters.
-  - **Fallback Logic**: Unannotated fields default to `extra`, but fallback to `path` or `query` automatically for simple types.
-- �️ **Transition Support**: Built-in Cupertino and Material transitions, plus support for custom transitions.
-- 🌍 **Global Configuration**: Set default transitions and durations globally.
-- 📦 **Single File Output**: All routes generated into a single `tp_router.g.dart` file.
-- 🔌 **Context Extensions**: Easy navigation via `context.tpPush('/path')`.
-- 🌐 **go_router Compatible**: Full access to underlying `go_router` features.
+*   🚀 **Annotation Driven**: Define routes directly on your widgets using `@TpRoute`.
+*   🛡️ **Type-Safe Parsing**: Automatically extracts `int`, `double`, `bool`, `String`, and complex objects from path, query parameters, or extra data.
+*   🔄 **Smart Redirection**: Strong-typed redirection mechanism. Check parameters before navigating.
+*   🐚 **Shell Routes & Nested Navigation**: Full support for `ShellRoute` and `StatefulShellRoute` (IndexedStack).
+*   ⚡ **Simple Navigation API**: Just call `MyRoute().tp(context)`.
+
+---
 
 ## Installation
 
@@ -31,65 +30,60 @@ dev_dependencies:
 
 ## Getting Started
 
-### 1. Define a Route
+### 1. Define Your Routes
 
-Annotate your widget class. Parameters in the constructor are automatically handled.
+Annotate your widget with `@TpRoute`. 
+Constructor arguments are automatically mapped to route parameters!
 
 ```dart
+// lib/pages/user_page.dart
 import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
 
-@TpRoute(path: '/user/:id', name: 'user')
+@TpRoute(path: '/user/:id')
 class UserPage extends StatelessWidget {
-  // Explicitly from Path: /user/:id
-  @Path('id')
-  final int userId;
-
-  // Implicitly from Extra with Fallback to Query: ?name=John
-  final String name;
+  // Automatically mapped from path parameter ':id'
+  // Or query parameter 'id', or extra data 'id'.
+  final int id; 
+  
+  // Optional parameter with default value
+  final String section; 
 
   const UserPage({
-    required this.userId,
-    this.name = 'Guest',
+    required this.id,
+    this.section = 'profile',
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('User $name')),
-      body: Center(child: Text('ID: $userId')),
-    );
+    return Text('User $id - Section $section');
   }
 }
 ```
 
-### 2. Run Build Runner
+### 2. Generate Code
 
-Generate the routing code:
+Run the build runner to generate the routing table:
 
 ```bash
 dart run build_runner build
 ```
 
-This creates `lib/tp_router.g.dart`.
+This will generate `lib/tp_router.g.dart` (default path).
 
 ### 3. Initialize Router
 
-Initialize `TpRouter` in your `main.dart` using the generated routes.
+In your `main.dart`, initialize `TpRouter` with the generated routes list.
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
-import 'tp_router.g.dart'; // Generated file
+import 'tp_router.g.dart'; // Import generated file
 
 void main() {
-  // Initialize with generated routes
   final router = TpRouter(
-    routes: tpRoutes,
-    // Global transition defaults (Optional)
-    defaultTransition: const TpMaterialPageTransition(),
-    defaultTransitionDuration: const Duration(milliseconds: 300),
+    routes: tpRoutes, // Generated list of routes
   );
 
   runApp(MaterialApp.router(
@@ -98,96 +92,129 @@ void main() {
 }
 ```
 
-## Parameter Extraction Rules
+---
 
-TpRouter employs a smart strategy to populate your widget fields:
+## Navigation
 
-1.  **Explicit Annotations**:
-    *   `@Path('paramName')`: Strictly fetches from path parameters.
-    *   `@Query('paramName')`: Strictly fetches from query parameters.
-
-2.  **Implicit (No Annotation)**:
-    *   **Complex Types** (Objects, Lists): Fetched strictly from `extra` map.
-    *   **Simple Types** (`int`, `String`, `bool`, `double`):
-        1.  Checks `extra` map first.
-        2.  **Fallback**: If not found in `extra`, attempts to find key in `path` parameters.
-        3.  **Fallback**: Finally checks `query` parameters.
-
-This allows you to be flexible: pass data via arguments (cleaner) or via URL (deep linkable), and the widget receives it seamlessly.
-
-## Transitions
-
-You can configure page transitions at the route level or globally.
-
-### Route Level
-Override the default transition for a specific page:
+Navigate using the generated route classes. This is 100% type-safe.
 
 ```dart
-@TpRoute(
-  path: '/details',
-  transition: TpCupertinoPageTransition(), // iOS style slide
-  // Or: TpMaterialPageTransition(),      // Fade/Zoom up
-)
-class DetailsPage extends StatelessWidget { ... }
+// Push a new route
+UserPage(id: 42).tp(context);
+
+// Replace the current route
+LoginPage().tp(context, replacement: true);
+
+// Clear history and go to new route
+HomePage().tp(context, clearHistory: true);
+
+// Wait for a result
+final result = await SelectProfileRoute().tp<String>(context);
 ```
 
-### Custom Transitions
-Extend `TpTransitionsBuilder` to create your own effects:
+You can also pop:
+```dart
+context.tpRouter.pop('Some Result');
+```
+
+---
+
+## Capabilities
+
+### Parameter Extraction Strategy
+TpRouter smartly resolves constructor parameters in this order:
+1.  **Explicit Annotation**: `@Path('id')` (Force path param) or `@Query('q')` (Force query param).
+2.  **Extra Data**: Checks if the object was passed via `extra` map.
+3.  **Path Parameters**: Checks if the URL path contains the key.
+4.  **Query Parameters**: Checks the URL query string.
+
+### Redirection / Guards
+
+TpRouter supports a powerful, type-safe redirection system. 
+You can define a redirect function or class that receives the **fully instantiated route object**.
+
+**1. Define a Redirect Logic**
+```dart
+// You can access 'route.id' directly!
+FutureOr<TpRouteData?> checkUserAccess(BuildContext context, UserRoute route) {
+  if (route.id == 999) {
+    // Redirect to blocked page
+    return const BlockedRoute();
+  }
+  return null; // No redirect, proceed to page
+}
+```
+
+**2. Attach to Route**
+```dart
+@TpRoute(path: '/user/:id', redirect: checkUserAccess)
+class UserPage extends StatelessWidget { ... }
+```
+
+You can also use a class extending `TpRedirect<T>` for cleaner organization.
 
 ```dart
-class MyFadeTransition extends TpTransitionsBuilder {
-  const MyFadeTransition();
+class AuthRedirect extends TpRedirect<ProtectedRoute> {
+  const AuthRedirect();
   @override
-  Widget buildTransitions(BuildContext context, Animation<double> animation, 
-      Animation<double> secondaryAnimation, Widget child) {
-    return FadeTransition(opacity: animation, child: child);
+  FutureOr<TpRouteData?> handle(BuildContext context, ProtectedRoute route) {
+    if (!AuthService.isLoggedIn) {
+      return const LoginRoute();
+    }
+    return null;
+  }
+}
+
+@TpRoute(path: '/protected', redirect: AuthRedirect)
+class ProtectedPage extends StatelessWidget { ... }
+```
+
+### Shell Routes (Nested Navigation)
+
+Use `@TpShellRoute` or `@TpStatefulShellRoute` for nested navigation (e.g., Bottom Navigation Bars).
+
+```dart
+@TpStatefulShellRoute(
+  branches: [
+    [HomeRoute],
+    [SettingsRoute],
+  ],
+)
+class MainShellPage extends StatelessWidget {
+  final TpStatefulNavigationShell navigationShell;
+  
+  const MainShellPage({required this.navigationShell});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: navigationShell,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: navigationShell.currentIndex,
+        onTap: (index) => navigationShell.goBranch(index),
+        items: [ ... ],
+      ),
+    );
   }
 }
 ```
 
-## Navigation
+---
 
-Use the context extensions for easy navigation:
+## Configuration
 
-```dart
-## Navigation
+### Custom Output Path
 
-### Type-Safe Navigation (Recommended)
-Use the generated route classes:
+By default, code is generated in `lib/tp_router.g.dart`. You can customize this in `build.yaml`:
 
-```dart
-// Push a new route
-HomeRoute().tp(context);
-
-// Pass parameters (Constructor arguments)
-UserRoute(userId: 42, name: 'Alice').tp(context);
-
-// Replace current route
-SettingsRoute().tp(context, replacement: true);
-
-// Clear history (like .go)
-LoginRoute().tp(context, clearHistory: true);
+```yaml
+targets:
+  $default:
+    builders:
+      tp_router_generator:tp_router:
+        options:
+          output: lib/routes/app_routes.dart
 ```
-
-### Dynamic Navigation
-Use `TpRouteData.fromPath`:
-
-```dart
-// Push by path
-TpRouteData.fromPath('/user/42?name=Alice').tp(context);
-
-// Pass complex data (extra)
-TpRouteData.fromPath('/details', extra: {'item': myItem}).tp(context);
-```
-
-### Context API
-Access via `context.tpRouter`:
-
-```dart
-context.tpRouter.pop();
-final location = context.tpRouter.currentFullPath;
-```
-
 
 ## License
 
