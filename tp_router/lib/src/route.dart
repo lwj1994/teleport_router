@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tp_router/src/tp_router.dart';
 import 'package:tp_router_annotation/tp_router_annotation.dart';
+import 'navi_key.dart';
 import 'page_factory.dart';
 
 /// Configuration for TpRouter options.
@@ -90,17 +91,39 @@ abstract class TpRouteData {
 
   /// Navigate to this route.
   ///
+  /// [context]: Optional BuildContext for context-aware navigation.
   /// [clearHistory]: If true, clears navigation history (like `go`).
   /// [replacement]: If true, replaces the current route.
+  /// [navigatorKey]: Targets a specific navigator by its [TpNavKey].
+  ///
+  /// **Note**: You cannot pass both [context] and [navigatorKey] at the same
+  /// time. Use [context] for context-aware navigation within the current
+  /// navigator, or use [navigatorKey] for navigating within a specific
+  /// named navigator.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Navigate with context (uses current navigator)
+  /// UserRoute(id: 123).tp(context);
+  ///
+  /// // Navigate to specific navigator (uses TpRouter.instance)
+  /// DetailsRoute().tp(null, navigatorKey: const DashboardNavKey());
+  ///
+  /// // Wait for result
+  /// final result = await SelectRoute().tp<String>(context);
+  /// ```
   Future<T?>? tp<T extends Object?>(
-    BuildContext context, {
+    BuildContext? context, {
     bool clearHistory = false,
     bool replacement = false,
+    TpNavKey? navigatorKey,
   }) {
-    return context.tpRouter.tp<T>(
+    return TpRouter.instance.tp<T>(
       this,
+      context: context,
       isReplace: replacement,
       isClearHistory: clearHistory,
+      navigatorKey: navigatorKey,
     );
   }
 

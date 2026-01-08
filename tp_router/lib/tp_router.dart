@@ -21,3 +21,4 @@ export 'src/route_observer.dart';
 export 'src/page_factory.dart';
 export 'src/transitions.dart';
 export 'src/navigator_key_registry.dart' show TpNavigatorKeyRegistry;
+export 'src/navi_key.dart' show TpNavKey;

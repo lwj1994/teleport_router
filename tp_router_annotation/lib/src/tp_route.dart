@@ -80,14 +80,14 @@ class TpRoute {
 
   /// Optional key of the parent shell.
   ///
-  /// Specify the `navigatorKey` of the [TpShellRoute] that this route belongs to.
+  /// Specify a [TpNavKey] subclass type that this route belongs to.
   ///
   /// Example:
   /// ```dart
-  /// @TpRoute(path: '/home', parentNavigatorKey: 'main')
+  /// @TpRoute(path: '/home', parentNavigatorKey: MainNavKey)
   /// class HomePage extends StatelessWidget { ... }
   /// ```
-  final String? parentNavigatorKey;
+  final Type? parentNavigatorKey;
 
   /// Branch index when used with a StatefulShellRoute (isIndexedStack: true).
   ///
@@ -260,17 +260,28 @@ class TpShellRoute {
   /// The specific type of page to construct.
   final TpPageType? type;
 
-  /// The key to identify this shell route.
+  /// The navigator key class for this shell route.
   ///
-  /// Child routes with matching `parentNavigatorKey` in their `@TpRoute` annotation
-  /// will be automatically grouped under this shell.
-  final String navigatorKey;
+  /// Must be a subclass of [TpNavKey]. Child routes with matching
+  /// `parentNavigatorKey` in their `@TpRoute` annotation will be
+  /// automatically grouped under this shell.
+  ///
+  /// Example:
+  /// ```dart
+  /// class MainNavKey extends TpNavKey {
+  ///   const MainNavKey() : super('main');
+  /// }
+  ///
+  /// @TpShellRoute(navigatorKey: MainNavKey)
+  /// class MainShell extends StatelessWidget { ... }
+  /// ```
+  final Type navigatorKey;
 
   /// Optional key of the parent shell.
   ///
   /// If provided, this shell route will be nested inside the specified parent
-  /// shell route.
-  final String? parentNavigatorKey;
+  /// shell route. Must be a subclass of [TpNavKey].
+  final Type? parentNavigatorKey;
 
   /// Branch index when used within a parent StatefulShellRoute.
   ///

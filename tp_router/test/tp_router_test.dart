@@ -203,7 +203,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Return Page'), findsOneWidget);
 
-      router.pop('Success!');
+      router.pop(result: 'Success!');
       await tester.pumpAndSettle();
 
       expect(await future, 'Success!');

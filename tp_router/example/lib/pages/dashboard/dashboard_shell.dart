@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
+import 'package:example/routes/nav_keys.dart';
 
 @TpShellRoute(
-  navigatorKey: 'dashboard',
-  parentNavigatorKey: 'main',
+  // This key identifies THIS shell. Child routes (like AnalyticsPage) use this
+  // key (DashboardNavKey) as their parentNavigatorKey to attach themselves here.
+  navigatorKey: DashboardNavKey,
+
+  // This key tells TpRouter where to place THIS shell.
+  // It says "I am a child of the Main Shell, located in branch 2".
+  parentNavigatorKey: MainNavKey,
   branchIndex: 2,
-  opaque: true,
   observers: [DashboardObserver],
 )
 class DashboardShell extends StatelessWidget {

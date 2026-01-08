@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tp_router_annotation/tp_router_annotation.dart';
 import 'navigator_key_registry.dart';
+import 'navi_key.dart';
 import 'route.dart';
 import 'route_observer.dart';
 import 'tp_route_info.dart';
@@ -21,6 +22,24 @@ class TpRouter {
 
   /// The route observer for tracking navigation stack.
   final TpRouteObserver _observer;
+
+  static TpRouter? _instance;
+
+  /// Get the global router instance.
+  ///
+  /// This is available after the first call to the factory constructor.
+  static TpRouter get instance {
+    if (_instance == null) {
+      throw FlutterError(
+        'TpRouter has not been initialized. '
+        'Ensure you create a TpRouter instance before accessing it.',
+      );
+    }
+    return _instance!;
+  }
+
+  /// Check if TpRouter has been initialized.
+  static bool get isInitialized => _instance != null;
 
   /// Creates a [TpRouter] from a list of [TpRouteBase].
   ///
@@ -89,6 +108,12 @@ class TpRouter {
     TpPageType? defaultPageType,
     TpPageFactory? defaultPageBuilder,
   }) {
+    // Use the provided key or fall back to the global root key
+    if (navigatorKey != null) {
+      TpNavigatorKeyRegistry.rootKey = navigatorKey;
+    }
+    final effectiveNavigatorKey = TpNavigatorKeyRegistry.rootKey;
+
     // Determine initial location logic
     // If initialLocation is provided by user, use it.
     // Otherwise, try to auto-detect from routes.
@@ -151,12 +176,13 @@ class TpRouter {
       overridePlatformDefaultLocation: overridePlatformDefaultLocation,
       observers: allObservers, // ← Use combined observers with TpRouteObserver
       debugLogDiagnostics: debugLogDiagnostics,
-      navigatorKey: navigatorKey,
+      navigatorKey: effectiveNavigatorKey,
       restorationScopeId: restorationScopeId,
       requestFocus: requestFocus,
     );
 
-    return TpRouter._(goRouter, routes, tpObserver);
+    _instance = TpRouter._(goRouter, routes, tpObserver);
+    return _instance!;
   }
 
   static String? _findInitialPath(TpRouteBase route) {
@@ -218,6 +244,11 @@ class TpRouter {
   /// - [isReplace]: If true, replaces the current route instead of pushing.
   /// - [isClearHistory]: If true, clears the navigation stack (like `go`).
   ///
+  /// **Note**: You cannot pass both [context] and [navigatorKey] at the same
+  /// time. Use [context] for context-aware navigation within the current
+  /// navigator, or use [navigatorKey] for navigating within a specific
+  /// named navigator.
+  ///
   /// Example:
   /// ```dart
   /// // Push a new route
@@ -234,29 +265,195 @@ class TpRouter {
   /// ```
   Future<T?> tp<T extends Object?>(
     TpRouteData route, {
+    BuildContext? context,
+    TpNavKey? navigatorKey,
     bool isReplace = false,
     bool isClearHistory = false,
   }) {
+    assert(
+      !(context != null && navigatorKey != null),
+      'Cannot pass both context and navigatorKey. '
+      'Use context for context-aware navigation, or navigatorKey for '
+      'targeting a specific navigator.',
+    );
+    // Determine which GoRouter instance to use
+    final targetRouter =
+        _getTargetRouter(context: context, navigatorKey: navigatorKey);
+
     if (isClearHistory) {
-      _goRouter.go(route.fullPath, extra: route.extra);
+      targetRouter.go(route.fullPath, extra: route.extra);
       return Future.value(null);
     } else if (isReplace) {
-      return _goRouter.pushReplacement<T>(route.fullPath, extra: route.extra);
+      return targetRouter.pushReplacement<T>(route.fullPath,
+          extra: route.extra);
     } else {
-      return _goRouter.push<T>(route.fullPath, extra: route.extra);
+      return targetRouter.push<T>(route.fullPath, extra: route.extra);
     }
   }
 
+  /// Helper to resolve the target GoRouter based on context or navigatorKey.
+  GoRouter _getTargetRouter({BuildContext? context, TpNavKey? navigatorKey}) {
+    assert(
+      !(context != null && navigatorKey != null),
+      'Cannot pass both context and navigatorKey. '
+      'Use context for context-aware navigation, or navigatorKey for '
+      'targeting a specific navigator.',
+    );
+    if (context != null) {
+      try {
+        return GoRouter.of(context);
+      } catch (_) {}
+    } else if (navigatorKey != null) {
+      final key = navigatorKey.globalKey;
+      final ctx = key.currentContext;
+      if (ctx != null) {
+        try {
+          return GoRouter.of(ctx);
+        } catch (_) {}
+      }
+    }
+    return _goRouter;
+  }
+
   /// Pop the current route from the navigation stack.
-  void pop<T extends Object?>([T? result]) {
-    _goRouter.pop(result);
+  void pop<T extends Object?>({
+    BuildContext? context,
+    TpNavKey? navigatorKey,
+    T? result,
+  }) {
+    _getTargetRouter(context: context, navigatorKey: navigatorKey).pop(result);
   }
 
   /// Check if can pop the current route.
-  bool canPop() => _goRouter.canPop();
+  bool canPop({BuildContext? context, TpNavKey? navigatorKey}) =>
+      _getTargetRouter(context: context, navigatorKey: navigatorKey).canPop();
 
   /// Get the current location.
-  String get location => _goRouter.routerDelegate.currentConfiguration.fullPath;
+  String location({BuildContext? context, TpNavKey? navigatorKey}) =>
+      _getTargetRouter(context: context, navigatorKey: navigatorKey)
+          .routerDelegate
+          .currentConfiguration
+          .fullPath;
+
+  /// Pop routes until the predicate is satisfied.
+  void popUntil(
+    bool Function(Route<dynamic>) predicate, {
+    BuildContext? context,
+  }) {
+    final nav = _getNavigator(context: context);
+    nav.popUntil(predicate);
+  }
+
+  /// Remove a route from the navigation stack.
+  bool removeRoute(
+    TpRouteData route, {
+    BuildContext? context,
+    TpNavKey? navigatorKey,
+  }) {
+    return removeWhere(
+          (data) =>
+              data.routeName == route.routeName &&
+              data.fullPath == route.fullPath,
+          context: context,
+          navigatorKey: navigatorKey,
+        ) >
+        0;
+  }
+
+  /// Remove all routes that match the given predicate.
+  int removeWhere(
+    bool Function(TpRouteData data) predicate, {
+    BuildContext? context,
+    TpNavKey? navigatorKey,
+  }) {
+    final navigator = _getNavigator(
+      context: context,
+      navigatorKey: navigatorKey,
+    );
+
+    final observer = _findObserverInNavigator(navigator);
+    if (observer == null) return 0;
+
+    final routesToRemove = <Route>[];
+    for (final route in observer.allRoutes) {
+      final data = observer.getRouteData(route);
+      if (data != null && predicate(data)) {
+        routesToRemove.add(route);
+      }
+    }
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      for (final route in routesToRemove) {
+        if (route.isCurrent) {
+          navigator.pop();
+        } else {
+          observer.markRouteForRemoval(route);
+        }
+      }
+    });
+
+    return routesToRemove.length;
+  }
+
+  /// Get the route observer for tracking navigation stack.
+  TpRouteObserver? getObserver({
+    BuildContext? context,
+    TpNavKey? navigatorKey,
+  }) {
+    final navigator = _getNavigator(
+      context: context,
+      navigatorKey: navigatorKey,
+    );
+    return _findObserverInNavigator(navigator);
+  }
+
+  /// Internal helper to get NavigatorState.
+  ///
+  /// Logic:
+  /// 1. If navigatorKey is provided and found, use it.
+  /// 2. Else if context is provided, use Navigator.of(context).
+  /// 3. Otherwise (navigatorKey null/not found AND context null), use root.
+  NavigatorState _getNavigator({
+    BuildContext? context,
+    TpNavKey? navigatorKey,
+  }) {
+    assert(
+      !(context != null && navigatorKey != null),
+      'Cannot pass both context and navigatorKey. '
+      'Use context for context-aware navigation, or navigatorKey for '
+      'targeting a specific navigator.',
+    );
+    // Try navigatorKey first
+    if (navigatorKey != null) {
+      final key = navigatorKey.globalKey;
+      if (key.currentState != null) return key.currentState!;
+    }
+
+    // Then try context
+    if (context != null) return Navigator.of(context);
+
+    // Fallback to root (navigatorKey null/not found AND context null)
+    return TpNavigatorKeyRegistry.rootKey.currentState!;
+  }
+
+  TpRouteObserver? _findObserverInNavigator(NavigatorState navigator) {
+    return _searchObservers(navigator.widget.observers);
+  }
+
+  TpRouteObserver? _searchObservers(List<NavigatorObserver> observers) {
+    for (final observer in observers) {
+      if (observer is TpRouteObserver) return observer;
+      try {
+        final dynamic dynamicObserver = observer;
+        final children = dynamicObserver.observers;
+        if (children is List<NavigatorObserver>) {
+          final found = _searchObservers(children);
+          if (found != null) return found;
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
 
   /// Dispose the router.
   void dispose() {
@@ -272,8 +469,6 @@ class TpRouterContext {
 
   /// Creates a [TpRouterContext] bound to the given [context].
   TpRouterContext(this._context);
-
-  GoRouter get _goRouter => GoRouter.of(_context);
 
   /// Navigate to a route.
   ///
@@ -303,264 +498,62 @@ class TpRouterContext {
     bool isReplace = false,
     bool isClearHistory = false,
   }) {
-    if (isClearHistory) {
-      _goRouter.go(route.fullPath, extra: route.extra);
-      return Future.value(null);
-    } else if (isReplace) {
-      return _goRouter.pushReplacement<T>(route.fullPath, extra: route.extra);
-    } else {
-      return _goRouter.push<T>(route.fullPath, extra: route.extra);
-    }
+    return TpRouter.instance.tp<T>(
+      route,
+      context: _context,
+      isReplace: isReplace,
+      isClearHistory: isClearHistory,
+    );
   }
 
   /// Pop the current route from the navigation stack.
   void pop<T extends Object?>([T? result]) {
-    if (!canPop) return;
-    _goRouter.pop(result);
+    TpRouter.instance.pop<T>(context: _context, result: result);
   }
 
   /// Pop routes until the predicate is satisfied.
   void popUntil(bool Function(Route<dynamic>) predicate) {
-    if (canPop) {
-      Navigator.of(_context, rootNavigator: false).popUntil(predicate);
-    }
+    TpRouter.instance.popUntil(predicate, context: _context);
   }
 
   /// Check if can pop the current route.
-  bool get canPop => _goRouter.canPop();
+  bool get canPop => TpRouter.instance.canPop(context: _context);
 
   /// Get the current location.
-  String get currentFullPath =>
-      _goRouter.routerDelegate.currentConfiguration.fullPath;
-
-  /// Get navigator key by name, with optional branch index.
-  ///
-  /// If [branch] is provided, returns the branch navigator key for a
-  /// StatefulShellRoute. Otherwise, returns the shell's navigator key.
-  ///
-  /// Returns null if the navigator key is not registered.
-  ///
-  /// Example:
-  /// ```dart
-  /// // Get the 'dashboard' shell navigator key
-  /// final key = context.tpRouter.getNavigatorKey('dashboard');
-  ///
-  /// // Get branch 0 of 'main' StatefulShellRoute
-  /// final branchKey = context.tpRouter.getNavigatorKey('main', branch: 0);
-  ///
-  /// // Use with removeRoute
-  /// context.tpRouter.removeRoute(
-  ///   SomeRoute(),
-  ///   navigatorKey: 'main_branch_0',
-  /// );
-  /// ```
-  GlobalKey<NavigatorState>? getNavigatorKey(String key, {int? branch}) {
-    if (branch != null) {
-      return TpNavigatorKeyRegistry.getBranch(key, branch);
-    }
-    return TpNavigatorKeyRegistry.get(key);
-  }
+  String get currentFullPath => TpRouter.instance.location(context: _context);
 
   /// Remove a route from the navigation stack.
-  ///
-  /// Returns `true` if a matching route was found and removed, `false` otherwise.
-  ///
-  /// **Smart Removal Strategy**:
-  /// Due to limitations in `go_router` (declarative routing), this method uses a hybrid approach:
-  /// 1. If the route is at the **top**, it is popped immediately.
-  /// 2. If the route is in the **background**, it is **marked for removal**. When the user
-  ///    navigates back to it, it will be automatically skipped (popped instantly).
-  ///
-  /// **Note**: This requires TpRouter to be initialized with TpRouteObserver.
-  /// The observer is added automatically when using TpRouter.
-  ///
-  /// Use [navigatorKey] to target a specific Navigator (e.g., shell route navigator).
-  /// Use [rootNavigator] to target the root Navigator.
-  ///
-  /// Example:
-  /// ```dart
-  /// // Remove from current Navigator
-  /// context.tpRouter.removeRoute(LoginRoute());
-  ///
-  /// // Remove from specific Navigator (shell route)
-  /// context.tpRouter.removeRoute(ProfileRoute(), navigatorKey: 'main');
-  ///
-  /// // Remove from root Navigator
-  /// context.tpRouter.removeRoute(DialogRoute(), rootNavigator: true);
-  /// ```
   bool removeRoute(
     TpRouteData route, {
-    String? navigatorKey,
-    int? branch,
-    bool rootNavigator = false,
-    BuildContext? context,
+    TpNavKey? navigatorKey,
   }) {
-    // Use removeWhere to remove routes matching both routeName and fullPath
-    final removed = removeWhere(
-      (data) =>
-          data.routeName == route.routeName && data.fullPath == route.fullPath,
+    return TpRouter.instance.removeRoute(
+      route,
+      context: _context,
       navigatorKey: navigatorKey,
-      branch: branch,
-      rootNavigator: rootNavigator,
-      context: context,
     );
-    return removed > 0;
   }
 
   /// Remove all routes that match the given predicate.
-  ///
-  /// Returns the number of routes removed.
-  ///
-  /// **Smart Removal Strategy**:
-  /// Due to limitations in `go_router` (declarative routing), this method uses a hybrid approach:
-  /// 1. If the route is at the **top**, it is popped immediately.
-  /// 2. If the route is in the **background**, it is **marked for removal**. When the user
-  ///    navigates back to it, it will be automatically skipped (popped instantly).
-  ///
-  /// **Note**: This requires TpRouter to be initialized with TpRouteObserver.
-  ///
-  /// The predicate function receives a [TpRouteData] object and should return `true`
-  /// to remove the route, `false` to keep it.
-  ///
-  /// Use [navigatorKey] to target a specific Navigator.
-  /// Use [rootNavigator] to target the root Navigator.
-  ///
-  /// Example:
-  /// ```dart
-  /// // Remove all routes with specific parameter
-  /// final count = context.tpRouter.removeWhere(
-  ///   (data) => data.pathParams['id'] == '123',
-  /// );
-  ///
-  /// // Remove all routes matching a path pattern
-  /// context.tpRouter.removeWhere(
-  ///   (data) => data.fullPath.contains('dialog'),
-  /// );
-  /// ```
   int removeWhere(
     bool Function(TpRouteData data) predicate, {
-    String? navigatorKey,
-    int? branch,
-    bool rootNavigator = false,
-    BuildContext? context,
+    TpNavKey? navigatorKey,
   }) {
-    final navigator = _getNavigator(
+    return TpRouter.instance.removeWhere(
+      predicate,
+      context: _context,
       navigatorKey: navigatorKey,
-      branch: branch,
-      rootNavigator: rootNavigator,
-      context: context,
     );
-
-    final observer = _findObserverInNavigator(navigator);
-
-    if (observer == null) {
-      return 0;
-    }
-
-    // Get all tracked routes, extract their data, and filter by predicate
-    final routesToRemove = <Route>[];
-    for (final route in observer.allRoutes) {
-      final data = observer.getRouteData(route);
-      if (data != null && predicate(data)) {
-        routesToRemove.add(route);
-      }
-    }
-
-    // Wrap in addPostFrameCallback to avoid _debugLocked assertion
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      for (final route in routesToRemove) {
-        if (route.isCurrent) {
-          navigator.pop();
-        } else {
-          // Cannot imperatively remove intermediate Page-based routes.
-          // Mark for auto-removal when it becomes the top route (on pop).
-          observer.markRouteForRemoval(route);
-          debugPrint(
-              'TpRouter: Route "${route.settings.name}" marked for removal when revealed.');
-        }
-      }
-    });
-
-    return routesToRemove.length;
-  }
-
-  /// Get the Navigator instance based on provided parameters.
-  ///
-  /// [context] optional context to use (defaults to _context).
-  /// [navigatorKey] targets a specific Navigator by its key name.
-  /// [branch] specifies the branch index for StatefulShellRoute navigators.
-  NavigatorState _getNavigator({
-    String? navigatorKey,
-    int? branch,
-    bool rootNavigator = false,
-    BuildContext? context,
-  }) {
-    final ctx = context ?? _context;
-
-    if (rootNavigator) {
-      return Navigator.of(ctx, rootNavigator: true);
-    }
-
-    if (navigatorKey != null) {
-      final key = getNavigatorKey(navigatorKey, branch: branch);
-      if (key?.currentState != null) {
-        return key!.currentState!;
-      }
-      // Fallback to current navigator if key not found
-      return Navigator.of(ctx);
-    }
-
-    return Navigator.of(ctx);
   }
 
   /// Get the route observer for tracking navigation stack.
-  ///
-  /// This is used internally by delete() method.
-  TpRouteObserver? getObserver(
-    String? navigatorKey,
-    bool rootNavigator, {
-    BuildContext? context,
-    int? branch,
+  TpRouteObserver? getObserver({
+    TpNavKey? navigatorKey,
   }) {
-    final navigator = _getNavigator(
+    return TpRouter.instance.getObserver(
+      context: _context,
       navigatorKey: navigatorKey,
-      branch: branch,
-      rootNavigator: rootNavigator,
-      context: context,
     );
-
-    return _findObserverInNavigator(navigator);
-  }
-
-  /// Helper to find TpRouteObserver in a Navigator's observers.
-  TpRouteObserver? _findObserverInNavigator(NavigatorState navigator) {
-    return _searchObservers(navigator.widget.observers);
-  }
-
-  /// Recursively search for TpRouteObserver in a list of observers.
-  /// This handles cases where observers are wrapped (e.g., _MergedNavigatorObserver).
-  TpRouteObserver? _searchObservers(List<NavigatorObserver> observers) {
-    for (final observer in observers) {
-      if (observer is TpRouteObserver) {
-        return observer;
-      }
-
-      // Handle nested observers (e.g., _MergedNavigatorObserver from go_router)
-      // We use dynamic access because wrapper classes might be private.
-      try {
-        final dynamic dynamicObserver = observer;
-        final children = dynamicObserver.observers;
-        if (children is List<NavigatorObserver>) {
-          final found = _searchObservers(children);
-          if (found != null) {
-            return found;
-          }
-        }
-      } catch (_) {
-        // Ignore if the observer doesn't have an 'observers' property
-      }
-    }
-    return null;
   }
 }
 

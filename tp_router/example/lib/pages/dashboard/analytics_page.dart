@@ -1,10 +1,13 @@
 import 'package:example/routes/route.gr.dart';
+import 'package:example/routes/nav_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
 
-@TpRoute(path: '/dashboard/analytics', parentNavigatorKey: 'dashboard')
+@TpRoute(path: '/dashboard/analytics', parentNavigatorKey: DashboardNavKey)
 class AnalyticsPage extends StatelessWidget {
-  const AnalyticsPage({super.key});
+  final String? title;
+
+  const AnalyticsPage({this.title, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +18,7 @@ class AnalyticsPage extends StatelessWidget {
           children: [
             Icon(Icons.analytics, size: 64, color: Colors.blue),
             SizedBox(height: 16),
-            Text('Analytics Overview', style: TextStyle(fontSize: 24)),
+            Text(title ?? 'Analytics Overview', style: TextStyle(fontSize: 24)),
             Text('Charts and graphs go here'),
             SizedBox(height: 20),
             ElevatedButton(

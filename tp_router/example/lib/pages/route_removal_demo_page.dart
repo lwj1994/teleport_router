@@ -227,8 +227,7 @@ class _RouteStackPageCState extends State<RouteStackPageC> {
                   // Remove Page B from the navigation stack
                   final removed = context.tpRouter.removeRoute(
                     const RouteStackPageBRoute(),
-                    navigatorKey: 'main',
-                    branch: 0,
+                    navigatorKey: TpNavKey.value('main', branch: 0),
                   );
 
                   setState(() {
@@ -261,10 +260,9 @@ class _RouteStackPageCState extends State<RouteStackPageC> {
               children: [
                 OutlinedButton(
                   onPressed: () {
-                    // Remove from root navigator
-                    final removed = context.tpRouter.removeRoute(
+                    // Remove from root navigator (context null = root)
+                    final removed = TpRouter.instance.removeRoute(
                       const RouteStackPageBRoute(),
-                      rootNavigator: true,
                     );
                     _showSnackBar(
                       context,
@@ -280,7 +278,7 @@ class _RouteStackPageCState extends State<RouteStackPageC> {
                     // Remove from main_branch_0 navigator
                     final removed = context.tpRouter.removeRoute(
                       const RouteStackPageBRoute(),
-                      navigatorKey: 'main_branch_0',
+                      navigatorKey: TpNavKey.value('main_branch_0'),
                     );
                     _showSnackBar(
                       context,

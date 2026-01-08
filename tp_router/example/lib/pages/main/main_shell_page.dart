@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
+import 'package:example/routes/nav_keys.dart';
 
 @TpShellRoute(
-    navigatorKey: 'main',
+    navigatorKey: MainNavKey,
     isIndexedStack: true,
-    opaque: true,
     observers: [AObserver])
 class MainShellPage extends StatelessWidget {
   final TpStatefulNavigationShell navigationShell;

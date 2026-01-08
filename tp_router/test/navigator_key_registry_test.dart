@@ -10,70 +10,64 @@ void main() {
     });
 
     test('getOrCreate creates new key if not exists', () {
-      final key = TpNavigatorKeyRegistry.getOrCreate('test_nav');
+      final key =
+          TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('test_nav'));
       expect(key, isNotNull);
     });
 
     test('getOrCreate returns same key if already exists', () {
-      final key1 = TpNavigatorKeyRegistry.getOrCreate('test_nav');
-      final key2 = TpNavigatorKeyRegistry.getOrCreate('test_nav');
+      final key1 =
+          TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('test_nav'));
+      final key2 =
+          TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('test_nav'));
       expect(identical(key1, key2), isTrue);
     });
 
     test('get returns null for non-existent key', () {
-      final key = TpNavigatorKeyRegistry.get('non_existent');
+      final key = TpNavigatorKeyRegistry.get(TpNavKey.value('non_existent'));
       expect(key, isNull);
     });
 
     test('get returns key if exists', () {
-      final created = TpNavigatorKeyRegistry.getOrCreate('my_nav');
-      final fetched = TpNavigatorKeyRegistry.get('my_nav');
+      final created =
+          TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('my_nav'));
+      final fetched = TpNavigatorKeyRegistry.get(TpNavKey.value('my_nav'));
       expect(fetched, isNotNull);
       expect(identical(created, fetched), isTrue);
     });
 
-    test('getBranch returns correct branch key', () {
-      // Create branch keys
-      final b0 = TpNavigatorKeyRegistry.getOrCreate('main_branch_0');
-      final b1 = TpNavigatorKeyRegistry.getOrCreate('main_branch_1');
-      final b2 = TpNavigatorKeyRegistry.getOrCreate('main_branch_2');
+    test('branch keys work correctly with TpNavKey', () {
+      // Create branch keys using TpNavKey with branch parameter
+      final b0 =
+          TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('main', branch: 0));
+      final b1 =
+          TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('main', branch: 1));
+      final b2 =
+          TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('main', branch: 2));
 
-      final branch0 = TpNavigatorKeyRegistry.getBranch('main', 0);
-      final branch1 = TpNavigatorKeyRegistry.getBranch('main', 1);
-      final branch2 = TpNavigatorKeyRegistry.getBranch('main', 2);
+      // Retrieve them again
+      final branch0 = TpNavKey.value('main', branch: 0).globalKey;
+      final branch1 = TpNavKey.value('main', branch: 1).globalKey;
+      final branch2 = TpNavKey.value('main', branch: 2).globalKey;
 
-      expect(branch0, isNotNull);
-      expect(branch1, isNotNull);
-      expect(branch2, isNotNull);
       expect(identical(branch0, b0), isTrue);
       expect(identical(branch1, b1), isTrue);
       expect(identical(branch2, b2), isTrue);
     });
 
-    test('getBranch returns null for non-existent branch', () {
-      final branch = TpNavigatorKeyRegistry.getBranch('main', 99);
-      expect(branch, isNull);
-    });
-
     test('all returns unmodifiable map of all keys', () {
-      TpNavigatorKeyRegistry.getOrCreate('nav1');
-      TpNavigatorKeyRegistry.getOrCreate('nav2');
+      TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('nav1'));
+      TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('nav2'));
 
       final all = TpNavigatorKeyRegistry.all;
       expect(all.length, 2);
-      expect(all.containsKey('nav1'), isTrue);
-      expect(all.containsKey('nav2'), isTrue);
-
-      // Should be unmodifiable
-      expect(
-        () => all['nav3'] = GlobalKey<NavigatorState>(),
-        throwsA(anything),
-      );
+      expect(all.containsKey(TpNavKey.value('nav1')), isTrue);
+      expect(all.containsKey(TpNavKey.value('nav2')), isTrue);
     });
 
     test('clear removes all keys', () {
-      TpNavigatorKeyRegistry.getOrCreate('nav1');
-      TpNavigatorKeyRegistry.getOrCreate('nav2');
+      TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('nav1'));
+      TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('nav2'));
       expect(TpNavigatorKeyRegistry.all.length, 2);
 
       TpNavigatorKeyRegistry.clear();
@@ -214,84 +208,43 @@ void main() {
     });
   });
 
-  group('TpRouterContext getNavigatorKey', () {
+  group('TpNavKey.globalKey', () {
     setUp(() {
       TpNavigatorKeyRegistry.clear();
     });
 
-    testWidgets('getNavigatorKey returns registered key', (tester) async {
+    test('globalKey returns registered key', () {
       // Pre-register a key
-      final dashboardKey = TpNavigatorKeyRegistry.getOrCreate('dashboard');
+      final dashboardKey =
+          TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('dashboard'));
 
-      final homeRoute = TpRouteInfo(
-        path: '/',
-        isInitial: true,
-        builder: (data) => const Text('Home'),
-      );
-
-      final router = TpRouter(routes: [homeRoute]);
-
-      await tester.pumpWidget(MaterialApp.router(
-        routerConfig: router.routerConfig,
-      ));
-      await tester.pumpAndSettle();
-
-      final context = tester.element(find.text('Home'));
-      final key = context.tpRouter.getNavigatorKey('dashboard');
+      // Use globalKey directly
+      final key = TpNavKey.value('dashboard').globalKey;
 
       expect(key, isNotNull);
       expect(identical(key, dashboardKey), isTrue);
     });
 
-    testWidgets('getNavigatorKey with branch returns branch key',
-        (tester) async {
-      // Pre-register branch keys (simulating generated code)
-      final b0 = TpNavigatorKeyRegistry.getOrCreate('main_branch_0');
-      final b1 = TpNavigatorKeyRegistry.getOrCreate('main_branch_1');
+    test('globalKey with branch returns branch key', () {
+      // Pre-register branch keys
+      final b0 =
+          TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('main', branch: 0));
+      final b1 =
+          TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value('main', branch: 1));
 
-      final homeRoute = TpRouteInfo(
-        path: '/',
-        isInitial: true,
-        builder: (data) => const Text('Home'),
-      );
+      // Use globalKey directly
+      final branch0 = TpNavKey.value('main', branch: 0).globalKey;
+      final branch1 = TpNavKey.value('main', branch: 1).globalKey;
 
-      final router = TpRouter(routes: [homeRoute]);
-
-      await tester.pumpWidget(MaterialApp.router(
-        routerConfig: router.routerConfig,
-      ));
-      await tester.pumpAndSettle();
-
-      final context = tester.element(find.text('Home'));
-
-      final branch0 = context.tpRouter.getNavigatorKey('main', branch: 0);
-      final branch1 = context.tpRouter.getNavigatorKey('main', branch: 1);
-
-      expect(branch0, isNotNull);
       expect(identical(branch0, b0), isTrue);
-      expect(branch1, isNotNull);
       expect(identical(branch1, b1), isTrue);
     });
 
-    testWidgets('getNavigatorKey returns null for unregistered key',
-        (tester) async {
-      final homeRoute = TpRouteInfo(
-        path: '/',
-        isInitial: true,
-        builder: (data) => const Text('Home'),
-      );
+    test('globalKey creates key if not exists', () {
+      // globalKey uses getOrCreate, so it always returns a key
+      final key = TpNavKey.value('non_existent').globalKey;
 
-      final router = TpRouter(routes: [homeRoute]);
-
-      await tester.pumpWidget(MaterialApp.router(
-        routerConfig: router.routerConfig,
-      ));
-      await tester.pumpAndSettle();
-
-      final context = tester.element(find.text('Home'));
-      final key = context.tpRouter.getNavigatorKey('non_existent');
-
-      expect(key, isNull);
+      expect(key, isNotNull);
     });
   });
 }

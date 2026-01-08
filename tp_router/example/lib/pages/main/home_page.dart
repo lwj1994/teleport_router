@@ -1,4 +1,5 @@
 import 'package:example/routes/route.gr.dart';
+import 'package:example/routes/nav_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:tp_router/tp_router.dart';
 
@@ -8,7 +9,8 @@ import 'package:tp_router/tp_router.dart';
 /// ```dart
 /// context.tpRouter.tp(HomeRoute());
 /// ```
-@TpRoute(path: '/', isInitial: true, parentNavigatorKey: 'main', branchIndex: 0)
+@TpRoute(
+    path: '/', isInitial: true, parentNavigatorKey: MainNavKey, branchIndex: 0)
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -92,6 +94,32 @@ class _HomePageState extends State<HomePage> {
                 foregroundColor: Colors.white,
               ),
               label: const Text('Route Removal Demo'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.cast_connected),
+              onPressed: () {
+                // Remote push to Dashboard's navigator
+                // This demonstrates controlling a different navigator stack using its NavKey!
+                // Note: We MUST pass null for context when using navigatorKey, as they are mutually exclusive.
+                
+                const AnalyticsRoute(title: 'Pushed Remotely from Home')
+                    .tp(null, navigatorKey: const DashboardNavKey());
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'Pushed to Dashboard! Go to Dashboard tab to see it.'),
+                    duration: Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+              ),
+              label: const Text('Remote Push to Dashboard'),
             ),
           ],
         ),

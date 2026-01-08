@@ -14,6 +14,7 @@ Stop writing boilerplate routing tables manually. Let `tp_router` handle it for 
 ## Features
 
 *   🚀 **Annotation Driven**: Define routes directly on your widgets using `@TpRoute`.
+*   🗝️ **Type-Safe NavKeys**: No more magic strings! Use typed keys for safe and refactor-friendly shell navigation.
 *   🛡️ **Type-Safe Parsing**: Automatically extracts `int`, `double`, `bool`, `String`, and complex objects from path, query parameters, or extra data.
 *   🔄 **Smart Redirection**: Strong-typed redirection mechanism. Check parameters before navigating.
 *   🐚 **Shell Routes & Nested Navigation**: Full support for `ShellRoute` and `StatefulShellRoute` (IndexedStack).
@@ -129,6 +130,17 @@ context.tpRouter.pop('Some Result');
 
 ## Capabilities
 
+### Type-Safe Navigator Keys
+
+Using strings for navigator keys (like `'root'`, `'shell'`) is error-prone and hard to refactor. TpRouter solves this with **TpNavKey**.
+
+*   **Compile-time Safety**: You can't mistype a class name.
+*   **Easy Refactoring**: Rename the class, and your IDE updates all references in annotations.
+*   **Centralized Definition**: All your navigation structure is defined in one place.
+*   **Zero Overhead**: It compiles down to efficient GlobalKey lookups.
+
+Just extend `TpNavKey` and use it everywhere!
+
 ### Parameter Extraction Strategy
 TpRouter smartly resolves constructor parameters in this order:
 1.  **Explicit Annotation**: `@Path('id')` (Force path param) or `@Query('q')` (Force query param).
@@ -233,18 +245,37 @@ final router = TpRouter(
 
 ### Shell Routes (Nested Navigation)
 
-TpRouter provides a powerful and decoupled way to define shell routes using **keys**. Instead of manually listing children, you simply assign a `navigatorKey` to a shell and associate child routes using `parentNavigatorKey`.
+TpRouter provides a powerful and type-safe way to define shell routes using **navigator key classes**. Define your own `TpNavKey` subclasses for compile-time safety, then use them in annotations.
 
-This approach keeps your code clean and modular, perfect for complex apps!
+This approach keeps your code clean, modular, and refactor-friendly!
 
-#### 1. Define a Shell Route
-Assign a unique `navigatorKey` to your shell layout.
+#### 1. Define Navigator Keys
+
+Create a file to define your navigator keys (e.g., `routes/nav_keys.dart`):
+
+```dart
+import 'package:tp_router/tp_router.dart';
+
+/// Navigator key for the main shell (bottom navigation).
+class MainNavKey extends TpNavKey {
+  const MainNavKey() : super('main');
+}
+
+/// Navigator key for the dashboard shell.
+class DashboardNavKey extends TpNavKey {
+  const DashboardNavKey() : super('dashboard');
+}
+```
+
+#### 2. Define a Shell Route
+
+Use your navigator key class in the `@TpShellRoute` annotation:
 
 ```dart
 // Stateful Shell (e.g., BottomNavigationBar)
 @TpShellRoute(
-  navigatorKey: 'main', 
-  isIndexedStack: true, // Preserves state of each branch
+  navigatorKey: MainNavKey,       // Type-safe reference
+  isIndexedStack: true,           // Preserves state of each branch
 )
 class MainShellPage extends StatelessWidget {
   final TpStatefulNavigationShell navigationShell;
@@ -269,45 +300,66 @@ class MainShellPage extends StatelessWidget {
 }
 ```
 
-#### 2. Associate Child Routes
-Simply add `parentNavigatorKey` to any route that belongs to a shell.
+#### 3. Associate Child Routes
+
+Use `parentNavigatorKey` with your navigator key class to associate routes with a shell.
 For stateful shells (tabs), use `branchIndex` to assign the route to a specific tab.
 
 ```dart
 // Branch 0: Home
-@TpRoute(path: '/', parentNavigatorKey: 'main', branchIndex: 0)
+@TpRoute(path: '/', parentNavigatorKey: MainNavKey, branchIndex: 0)
 class HomePage extends StatelessWidget { ... }
 
 // Branch 1: Settings
-@TpRoute(path: '/settings', parentNavigatorKey: 'main', branchIndex: 1)
+@TpRoute(path: '/settings', parentNavigatorKey: MainNavKey, branchIndex: 1)
 class SettingsPage extends StatelessWidget { ... }
 ```
 
-#### 3. Nested Shells (Advanced)
+#### 4. Nested Shells (Advanced)
+
 You can even nest a shell inside another shell! Just treat the inner shell as a child of the outer shell.
+
+*   **Rule 1 (Placement)**: The Inner Shell uses `parentNavigatorKey` + `branchIndex` to place itself inside the Outer Shell.
+*   **Rule 2 (Identity)**: The Inner Shell defines its OWN `navigatorKey` so its children can find it.
 
 ```dart
 // A shell inside the 'main' shell's 3rd branch
 @TpShellRoute(
-  navigatorKey: 'dashboard',   // This shell's own key
-  parentNavigatorKey: 'main',  // Parent shell's key
-  branchIndex: 2,              // Place in branch 2 of 'main'
+  navigatorKey: DashboardNavKey,   // This shell's own key
+  parentNavigatorKey: MainNavKey,  // Parent shell's key (type-safe!)
+  branchIndex: 2,                  // Place in branch 2 of 'main'
 )
 class DashboardShell extends StatelessWidget { ... }
 
 // Children of the nested 'dashboard' shell
-@TpRoute(path: '/dashboard/stats', parentNavigatorKey: 'dashboard')
+@TpRoute(path: '/dashboard/stats', parentNavigatorKey: DashboardNavKey)
 class StatsPage extends StatelessWidget { ... }
 ```
 
-#### 4. Configure Page and Observers
+#### 5. Runtime Navigation with Navigator Keys
+
+Use your navigator keys for targeted navigation operations:
+
+```dart
+// Navigate within a specific navigator
+SomeRoute().tp(navigatorKey: const DashboardNavKey());
+
+// Pop from a specific navigator
+context.tpRouter.pop(navigatorKey: const MainNavKey());
+
+// Get the GlobalKey for direct access
+final globalKey = const DashboardNavKey().globalKey;
+```
+
+#### 6. Configure Page and Observers
+
 You can customize page behavior, observers, and key configuration for Shell Routes. 
 
 > **Note**: Shell Routes do not have their own transitions as they act as a UI wrapper. Transitions are handled by the child routes being displayed within the shell.
 
 ```dart
 @TpShellRoute(
-  navigatorKey: 'modal_shell',
+  navigatorKey: ModalNavKey,
   // Make the shell transparent (e.g. for dialogs)
   opaque: false,
   // Add observers

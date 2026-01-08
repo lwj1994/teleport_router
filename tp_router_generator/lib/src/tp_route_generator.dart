@@ -201,12 +201,26 @@ class TpRouterBuilder implements Builder {
       }
     }
 
-    // Extract parentNavigatorKey and branchIndex for shell route association
-    final parentNavigatorKey =
-        annotation.peek('parentNavigatorKey')?.stringValue;
+    // Extract parentNavigatorKey as Type (optional)
+    String? parentNavigatorKey;
+    final parentKeyReader = annotation.peek('parentNavigatorKey');
+    if (parentKeyReader != null && !parentKeyReader.isNull) {
+      final parentType = parentKeyReader.objectValue.toTypeValue();
+      if (parentType != null && parentType.element != null) {
+        parentNavigatorKey = parentType.element!.name;
+      }
+    }
     final branchIndex = annotation.peek('branchIndex')?.intValue ?? 0;
 
     final extraImports = <String>{};
+
+    // Add import for parentNavigatorKey type
+    if (parentKeyReader != null && !parentKeyReader.isNull) {
+      final parentType = parentKeyReader.objectValue.toTypeValue();
+      if (parentType?.element?.library?.identifier != null) {
+        extraImports.add(parentType!.element!.library!.identifier);
+      }
+    }
 
     // Extract onExit
     String? onExit;
@@ -378,13 +392,38 @@ class TpRouterBuilder implements Builder {
     if (className == null) return null;
     final routeClassName = _generateRouteClassName(className);
 
-    final navigatorKey = annotation.read('navigatorKey').stringValue;
-    final parentNavigatorKey =
-        annotation.peek('parentNavigatorKey')?.stringValue;
-    final branchIndex = annotation.peek('branchIndex')?.intValue ?? 0;
-    final isIndexedStack = annotation.read('isIndexedStack').boolValue;
+    // Extract navigatorKey as Type
+    final navigatorKeyReader = annotation.read('navigatorKey');
+    final navigatorKeyType = navigatorKeyReader.objectValue.toTypeValue();
+    if (navigatorKeyType == null || navigatorKeyType.element == null) {
+      throw InvalidGenerationSourceError(
+        'navigatorKey must be a Type (e.g., MainNavKey)',
+        element: element,
+      );
+    }
+    final navigatorKeyClassName = navigatorKeyType.element!.name!;
+    final navigatorKeyImport = navigatorKeyType.element!.library?.identifier;
 
     final extraImports = <String>{};
+    if (navigatorKeyImport != null) {
+      extraImports.add(navigatorKeyImport);
+    }
+
+    // Extract parentNavigatorKey as Type (optional)
+    String? parentNavigatorKey;
+    final parentKeyReader = annotation.peek('parentNavigatorKey');
+    if (parentKeyReader != null && !parentKeyReader.isNull) {
+      final parentType = parentKeyReader.objectValue.toTypeValue();
+      if (parentType != null && parentType.element != null) {
+        parentNavigatorKey = parentType.element!.name;
+        if (parentType.element!.library?.identifier != null) {
+          extraImports.add(parentType.element!.library!.identifier);
+        }
+      }
+    }
+
+    final branchIndex = annotation.peek('branchIndex')?.intValue ?? 0;
+    final isIndexedStack = annotation.read('isIndexedStack').boolValue;
 
     // Extract observers
     final observers = <String>[];
@@ -412,7 +451,6 @@ class TpRouterBuilder implements Builder {
     final maintainState = annotation.peek('maintainState')?.boolValue ?? true;
 
     // Extract barrierColor (Color object)
-    // Extract barrierColor (Color object)
     int? barrierColor;
     final colorReader = annotation.peek('barrierColor');
     if (colorReader != null && !colorReader.isNull) {
@@ -428,7 +466,7 @@ class TpRouterBuilder implements Builder {
     return _ShellRouteData(
       className: className,
       routeClassName: routeClassName,
-      navigatorKey: navigatorKey,
+      navigatorKey: navigatorKeyClassName,
       parentNavigatorKey: parentNavigatorKey,
       branchIndex: branchIndex,
       isIndexedStack: isIndexedStack,
@@ -657,10 +695,10 @@ class TpRouterBuilder implements Builder {
     // Generate static navigatorKey constant and GlobalKey
     if (!route.isIndexedStack) {
       buffer.writeln(
-        "  static final navigatorGlobalKey = TpNavigatorKeyRegistry.getOrCreate('${route.navigatorKey}');",
+        '  static final navigatorGlobalKey = const ${route.navigatorKey}().globalKey;',
       );
       buffer.writeln(
-        "  static const navigatorKey = '${route.navigatorKey}';",
+        '  static const navigatorKey = ${route.navigatorKey}();',
       );
     }
     buffer.writeln();
@@ -673,10 +711,14 @@ class TpRouterBuilder implements Builder {
     final sortedBranchIndices = branchesMap.keys.toList()..sort();
 
     if (route.isIndexedStack) {
+      // Generate static navigatorKey instance for reference
+      buffer.writeln('  static const navigatorKey = ${route.navigatorKey}();');
+
       // Generate GlobalKey for each branch using registry
       for (int i = 0; i < sortedBranchIndices.length; i++) {
+        // For indexed stacks, we create branch-specific keys using the base key
         buffer.writeln(
-          "  static final _branchKey$i = TpNavigatorKeyRegistry.getOrCreate('${route.navigatorKey}_branch_$i');",
+          '  static final _branchKey$i = TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value(navigatorKey.key, branch: $i));',
         );
       }
       buffer.writeln();
@@ -1109,7 +1151,7 @@ class TpRouterBuilder implements Builder {
     String generateExtraCheck(String type) {
       if (!checkExtra) return '';
       return '''
-      final extraValue = settings.extra['$urlName'];
+      final extraValue = settings.extra?['$urlName'];
       if (extraValue is $type) {
         return extraValue;
       }
@@ -1163,7 +1205,7 @@ ${extraCheck.isNotEmpty ? '$extraCheck\n' : ''}        final raw = $stringSource
         // String case: check extra (if typed String), then fallback string source
         if (checkExtra) {
           return '''      final $name = (() {
-        final extraValue = settings.extra['$urlName'];
+        final extraValue = settings.extra?['$urlName'];
         if (extraValue is String) {
           return extraValue;
         }
