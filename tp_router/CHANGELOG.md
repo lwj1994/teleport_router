@@ -1,6 +1,10 @@
 ## 0.5.1
-* **Docs**: Refactored `README_zh.md` to be more modular and detailed.
-* **Fix**: Added explicit version constraint `^0.5.0` for `tp_router_annotation` to prevent downgrade analysis failure.
+* **Docs**: Complete rewrite of `README.md` with comprehensive TOC and advanced usage guide.
+* **Docs**: Rewrote `README_zh.md` in casual style with full feature coverage.
+* **Docs**: Added Page Configuration section covering `TpPageType`, dialog/modal options, transparent pages, observers.
+* **Docs**: Added Reactive Routing section explaining `refreshListenable` for login/logout flows.
+* **Docs**: Fixed `@Path` and `@Query` annotation examples (annotations go on final fields, not constructor params).
+* **Fix**: Added explicit version constraint `^0.5.0` for `tp_router_annotation`.
 * **Fix**: Replaced deprecated `withOpacity` with `withValues` in `SwipeBackWrapper`.
 
 ## 0.5.0
