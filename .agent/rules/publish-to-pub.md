@@ -3,6 +3,7 @@ trigger: always_on
 ---
 
 1. 先更新版本号。只改动 version: 0.4.0 。其他的依赖版本不要改
+2. 始终保持   tp_router_annotation:  ，不要修改 tp_router_annotation 的版本 
 2. 编写 changelog
 3. 按顺序发布 
 	a. tp_router_annotation

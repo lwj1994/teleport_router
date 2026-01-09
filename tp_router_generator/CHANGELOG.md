@@ -1,3 +1,8 @@
+## 0.6.0
+* **Fix**: Removed redundant `TpRouteObserver` generation (now handled by `TpNavKey` logic).
+* **Fix**: Cleaned up unused imports in generated code.
+* **Refactor**: Use constant prefix for route names.
+
 ## 0.5.0
 
 *   **Breaking Change**: No longer reads `branchIndex` from annotations. Branching logic now relies on `parentNavigatorKey` matching `branchKeys` definitions.
