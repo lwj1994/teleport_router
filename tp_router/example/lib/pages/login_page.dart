@@ -19,7 +19,7 @@ class LoginPage extends StatelessWidget {
             onPressed: () {
               // Simulate login and go home
               // In real app, update state here
-              const HomeRoute().tp(context, replacement: true);
+              const HomeRoute().tp(replacement: true);
             },
             child: const Text('Login'),
           ),

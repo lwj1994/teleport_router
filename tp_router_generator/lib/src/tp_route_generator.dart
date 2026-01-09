@@ -609,6 +609,7 @@ class TpRouterBuilder implements Builder {
     buffer.writeln();
     buffer.writeln("import 'package:tp_router/tp_router.dart';");
     buffer.writeln("import 'package:flutter/widgets.dart';");
+    buffer.writeln("import 'package:flutter/material.dart';");
 
     // Import source files
     for (final import in imports.toList()..sort()) {
@@ -699,13 +700,13 @@ class TpRouterBuilder implements Builder {
 
     if (route.isIndexedStack) {
       // Generate static navigatorKey instance for reference
-      buffer.writeln('  static const navigatorKey = ${route.navigatorKey}();');
+      buffer.writeln('  static final navigatorKey = ${route.navigatorKey}();');
 
-      // Generate GlobalKey for each branch using registry
+      // Generate TpNavKey for each branch
       for (int i = 0; i < sortedBranchIndices.length; i++) {
         // For indexed stacks, we create branch-specific keys using the base key
         buffer.writeln(
-          '  static final _branchKey$i = TpNavigatorKeyRegistry.getOrCreate(TpNavKey.value(navigatorKey.key, branch: $i));',
+          '  static final _branchKey$i = TpNavKey.value(navigatorKey.key, branch: $i);',
         );
       }
       buffer.writeln();
@@ -728,7 +729,7 @@ class TpRouterBuilder implements Builder {
         buffer.writeln('      ],');
       }
       buffer.writeln('    ],');
-      // Pass branch navigator keys
+      // Pass branch navigator keys (now TpNavKey instead of GlobalKey)
       buffer.write('    branchNavigatorKeys: [');
       for (int i = 0; i < sortedBranchIndices.length; i++) {
         buffer.write('_branchKey$i, ');
@@ -831,13 +832,13 @@ class TpRouterBuilder implements Builder {
     buffer.writeln('/// Usage:');
     buffer.writeln('/// ```dart');
     if (route.params.isEmpty) {
-      buffer.writeln('/// $routeClassName().tp(context);');
+      buffer.writeln('/// $routeClassName().tp();');
     } else {
       final exampleArgs = route.params
           .where((p) => p.isRequired)
           .map((p) => '${p.name}: ${_getExampleValue(p)}')
           .join(', ');
-      buffer.writeln('/// $routeClassName($exampleArgs).tp(context);');
+      buffer.writeln('/// $routeClassName($exampleArgs).tp();');
     }
     buffer.writeln('/// ```');
     buffer.writeln('class $routeClassName extends TpRouteData {');
@@ -1089,6 +1090,16 @@ class TpRouterBuilder implements Builder {
       buffer.writeln('  };');
       buffer.writeln();
     }
+
+    // toRoute() method for direct navigator push
+    buffer.writeln('  @override');
+    buffer.writeln('  Route<T> toRoute<T>() {');
+    buffer.writeln('    return MaterialPageRoute<T>(');
+    buffer.writeln(
+        "      settings: RouteSettings(name: routeName, arguments: this),");
+    buffer.writeln('      builder: (_) => routeInfo.builder(this),');
+    buffer.writeln('    );');
+    buffer.writeln('  }');
 
     buffer.writeln('}');
     buffer.writeln();

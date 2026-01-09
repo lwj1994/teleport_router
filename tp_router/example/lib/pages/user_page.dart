@@ -13,7 +13,7 @@ import 'package:tp_router/tp_router.dart';
 /// ```dart
 /// context.tpRouter.pushPath('/user/123?name=John&age=25');
 /// // or type-safe:
-/// // UserRoute(id: 123, name: 'John', age: 25).tp(context);
+/// // UserRoute(id: 123, name: 'John', age: 25).tp();
 /// ```
 @TpRoute(path: '/user/:id')
 class UserPage extends StatelessWidget {
@@ -44,7 +44,7 @@ class UserPage extends StatelessWidget {
           title: const Text('User Details'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.tpRouter.pop(),
+            onPressed: () => TpRouter.instance.pop(),
           ),
         ),
         body: Padding(

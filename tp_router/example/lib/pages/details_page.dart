@@ -32,7 +32,7 @@ class DetailsPage extends StatelessWidget {
           title: Text('$title (L$level)'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.tpRouter.pop(),
+            onPressed: () => TpRouter.instance.pop(),
           ),
         ),
         body: Center(
@@ -56,14 +56,14 @@ class DetailsPage extends StatelessWidget {
                       DetailsRoute(
                         title: title,
                         level: level + 1,
-                      ).tp(context);
+                      ).tp();
                     },
                     icon: const Icon(Icons.add),
                     label: const Text('Push Next Level'),
                   ),
                   ElevatedButton.icon(
                     onPressed: () {
-                      context.tpRouter.pop('Result from Level $level');
+                      TpRouter.instance.pop(result: 'Result from Level $level');
                     },
                     icon: const Icon(Icons.check),
                     label: const Text('Pop w/ Result'),
@@ -71,7 +71,7 @@ class DetailsPage extends StatelessWidget {
                   if (level > 1)
                     ElevatedButton.icon(
                       onPressed: () {
-                        context.tpRouter.popToInitial();
+                        TpRouter.instance.popToInitial();
                       },
                       icon: const Icon(Icons.home),
                       label: const Text('Pop Until Root'),

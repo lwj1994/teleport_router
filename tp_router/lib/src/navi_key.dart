@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'navigator_key_registry.dart';
 import 'route.dart';
+import 'route_observer.dart';
 import 'tp_router.dart';
 
 /// Abstract base class for type-safe navigator keys.
@@ -22,8 +23,8 @@ import 'tp_router.dart';
 ///   const MainNavKey() : super('main');
 /// }
 ///
-/// class DashboardNavKey extends TpNavKey {
-///   const DashboardNavKey() : super('dashboard');
+/// class MainDashBoradNavKey extends TpNavKey {
+///   const MainDashBoradNavKey() : super('dashboard');
 /// }
 ///
 /// // 2. Use in shell route annotation
@@ -41,10 +42,10 @@ import 'tp_router.dart';
 ///
 /// ```dart
 /// // Navigate within a specific navigator
-/// SomeRoute().tp(navigatorKey: const DashboardNavKey());
+/// SomeRoute().tp(navigatorKey: const MainDashBoradNavKey());
 ///
 /// // Pop from a specific navigator
-/// TpRouter.instance.pop(navigatorKey: const DashboardNavKey());
+/// TpRouter.instance.pop(navigatorKey: const MainDashBoradNavKey());
 ///
 /// // Get the GlobalKey for a navigator
 /// final key = const MainNavKey().globalKey;
@@ -94,6 +95,15 @@ abstract class TpNavKey {
   /// across the application lifetime.
   GlobalKey<NavigatorState> get globalKey {
     return TpNavigatorKeyRegistry.getOrCreate(this);
+  }
+
+  /// Get the TpRouteObserver associated with this navigator key.
+  ///
+  /// Creates and registers the observer if it doesn't exist yet.
+  /// Each navigator branch has its own observer for independent
+  /// route stack manipulation (e.g., removeRoute, popUntil).
+  TpRouteObserver get observer {
+    return TpNavigatorKeyRegistry.getOrCreateObserver(this);
   }
 
   @override

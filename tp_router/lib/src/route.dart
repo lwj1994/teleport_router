@@ -32,8 +32,8 @@ class TpRouterConfig {
 /// Example:
 /// ```dart
 /// // Navigation
-/// context.tpRouter.tp(HomeRoute());
-/// context.tpRouter.tp(TpRouteData.fromPath('/user/123'));
+/// TpRouter.instance.tp(HomeRoute());
+/// TpRouter.instance.tp(TpRouteData.fromPath('/user/123'));
 ///
 /// // Reading current route parameters
 /// final data = context.tpRouteData;
@@ -64,14 +64,31 @@ abstract class TpRouteData {
   /// The name of the route (null if not named).
   String? get routeName;
 
+  /// Converts this route data to a [Route] for direct navigator push.
+  ///
+  /// This is used when pushing to nested navigators that are not managed
+  /// by GoRouter. Generated route classes override this method.
+  ///
+  /// Example:
+  /// ```dart
+  /// final navigator = navigatorKey.globalKey.currentState!;
+  /// navigator.push(HomeRoute().toRoute());
+  /// ```
+  Route<T> toRoute<T>() {
+    throw UnimplementedError(
+      'toRoute() is not implemented for ${runtimeType}. '
+      'Use a generated route class instead of TpRouteData.fromPath() for nested navigation.',
+    );
+  }
+
   const TpRouteData();
 
   /// Creates a [TpRouteData] from a path string for navigation.
   ///
   /// Example:
   /// ```dart
-  /// context.tpRouter.tp(TpRouteData.fromPath('/user/123'));
-  /// context.tpRouter.tp(TpRouteData.fromPath('/home', extra: {'key': 'value'}));
+  /// TpRouter.instance.tp(TpRouteData.fromPath('/user/123'));
+  /// TpRouter.instance.tp(TpRouteData.fromPath('/home', extra: {'key': 'value'}));
   /// ```
   factory TpRouteData.fromPath(String path, {Object? extra = const {}}) {
     return _PathRoute(path, extra: extra);
@@ -95,31 +112,24 @@ abstract class TpRouteData {
   /// [replacement]: If true, replaces the current route.
   /// [navigatorKey]: Targets a specific navigator by its [TpNavKey].
   ///
-  /// **Note**: You cannot pass both [context] and [navigatorKey] at the same
-  /// time. Use [context] for context-aware navigation within the current
-  /// navigator, or use [navigatorKey] for navigating within a specific
-  /// named navigator.
-  ///
   /// Example:
   /// ```dart
-  /// // Navigate with context (uses current navigator)
-  /// UserRoute(id: 123).tp(context);
+  /// // Navigate (uses TpRouter.instance)
+  /// UserRoute(id: 123).tp();
   ///
-  /// // Navigate to specific navigator (uses TpRouter.instance)
-  /// DetailsRoute().tp(null, navigatorKey: const DashboardNavKey());
+  /// // Navigate to specific navigator
+  /// DetailsRoute().tp(navigatorKey: const MainDashBoradNavKey());
   ///
   /// // Wait for result
-  /// final result = await SelectRoute().tp<String>(context);
+  /// final result = await SelectRoute().tp<String>();
   /// ```
-  Future<T?>? tp<T extends Object?>(
-    BuildContext? context, {
+  Future<T?> tp<T extends Object?>({
     bool clearHistory = false,
     bool replacement = false,
     TpNavKey? navigatorKey,
   }) {
     return TpRouter.instance.tp<T>(
       this,
-      context: context,
       isReplace: replacement,
       isClearHistory: clearHistory,
       navigatorKey: navigatorKey,
@@ -247,6 +257,14 @@ class _PathRoute extends TpRouteData {
   Object? get extra => _extra;
 
   const _PathRoute(this.fullPath, {Object? extra = const {}}) : _extra = extra;
+
+  @override
+  Route<T> toRoute<T>() {
+    throw UnimplementedError(
+      'toRoute() is not supported for TpRouteData.fromPath(). '
+      'Use a generated route class (e.g., HomeRoute()) for nested navigation.',
+    );
+  }
 
   @override
   String? get routeName => null;

@@ -52,7 +52,7 @@ void main() {
       // Initialize Router with the test key
       router = TpRouter(
         routes: [homeRoute, page2],
-        navigatorKey: const TestNavKey().globalKey,
+        navigatorKey: const TestNavKey(),
       );
 
       await tester.pumpWidget(MaterialApp.router(
