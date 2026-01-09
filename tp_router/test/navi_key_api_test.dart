@@ -101,7 +101,7 @@ void main() {
 
       // Should pop back to home (original route) if we popTo HomeRoute
       // Note: Initial route data uses name as path fallback, so we match that.
-      await TpRouter.instance
+      TpRouter.instance
           .popTo(SimpleRoute('tp_router_home', name: 'tp_router_home'));
       await tester.pumpAndSettle();
       expect(find.text('Home'), findsOneWidget);

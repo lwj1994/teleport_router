@@ -41,7 +41,7 @@ import 'route_observer.dart';
 class TpNavigatorKeyRegistry {
   TpNavigatorKeyRegistry._();
 
-  static TpNavKey _rootKey = TpNavKey.value("tp_router_root");
+  static TpNavKey _rootKey = TpNavKey.value("${kTpRoutePrefix}root");
 
   /// The global root navigator key.
   static TpNavKey get rootKey => _rootKey;
@@ -87,7 +87,10 @@ class TpNavigatorKeyRegistry {
 
   /// Clear all registered keys and observers.
   ///
-  /// **Warning**: This is mainly for testing purposes.
+  /// **Warning**: This is mainly for testing purposes. Calling this in
+  /// production will cause state inconsistency since already-mounted
+  /// Navigators will still hold references to old GlobalKeys.
+  @visibleForTesting
   static void clear() {
     _keys.clear();
     _observers.clear();

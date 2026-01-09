@@ -56,9 +56,6 @@ class TpRouteInfo extends TpRouteBase {
   /// Parameter metadata for documentation and validation.
   final List<TpParamInfo> params;
 
-  /// Child routes.
-  final List<TpRouteBase> children;
-
   /// Custom transition builder.
   final TpTransitionsBuilder? transition;
 
@@ -79,7 +76,6 @@ class TpRouteInfo extends TpRouteBase {
     this.name,
     this.isInitial = false,
     this.params = const [],
-    this.children = const [],
     this.redirect,
     this.transition,
     this.transitionDuration = const Duration(milliseconds: 300),
@@ -168,13 +164,12 @@ class TpRouteInfo extends TpRouteBase {
           config: config,
         );
       },
-      routes: children.map((c) => c.toGoRoute(config: config)).toList(),
     );
   }
 }
 
-/// Internal route data implementation for builder context.
-class _ContextRouteData extends TpRouteData {
+/// Internal route data implementation for pageBuilder context.
+class _GoRouterStateRouteData extends TpRouteData {
   @override
   final String fullPath;
 
@@ -193,7 +188,7 @@ class _ContextRouteData extends TpRouteData {
   @override
   final dynamic extra;
 
-  const _ContextRouteData({
+  const _GoRouterStateRouteData({
     required this.fullPath,
     required this.pathParams,
     required this.queryParams,
@@ -296,13 +291,19 @@ class TpShellRouteInfo extends TpRouteBase {
 /// Wrapper for StatefulNavigationShell to expose safe API.
 class TpStatefulNavigationShell extends StatelessWidget {
   final StatefulNavigationShell _shell;
-  const TpStatefulNavigationShell(this._shell, {super.key});
+  final int _branchCount;
+
+  const TpStatefulNavigationShell(this._shell, this._branchCount, {super.key});
 
   /// The current branch index.
   int get currentIndex => _shell.currentIndex;
 
   /// Switch to a branch.
   void tp(int index, {bool popToInitial = false}) {
+    if (index < 0 || index >= _branchCount) {
+      throw RangeError.range(
+          index, 0, _branchCount - 1, 'index', 'Branch index out of bounds');
+    }
     _shell.goBranch(index, initialLocation: popToInitial);
   }
 
@@ -316,7 +317,17 @@ typedef TpStatefulShellBuilder = Widget Function(
   TpStatefulNavigationShell navigationShell,
 );
 
-/// A stateful shell route using indexed stack.
+/// A shell route that maintains state for its branches (StatefulShellRoute).
+///
+/// This is typically used for applications with a bottom navigation bar, where
+/// each tab (branch) maintains its own navigation stack and state.
+///
+/// ## Usage
+/// - [branches]: Defines the route stack for each tab.
+/// - [branchNavigatorKeys]: Optional [TpNavKey]s for each branch. Providing these
+///   enables advanced features like `popToInitial()` or `popUntil()` for specific tabs.
+///
+/// **Note**: If [branchNavigatorKeys] is provided, its length must match [branches].
 class TpStatefulShellRouteInfo extends TpRouteBase {
   /// Builder for the shell UI.
   final TpStatefulShellBuilder builder;
@@ -367,12 +378,20 @@ class TpStatefulShellRouteInfo extends TpRouteBase {
 
   @override
   RouteBase toGoRoute({TpRouterConfig? config}) {
+    // Validate branchNavigatorKeys length if provided
+    assert(
+      branchNavigatorKeys == null ||
+          branchNavigatorKeys!.length == branches.length,
+      'branchNavigatorKeys length (${branchNavigatorKeys?.length}) must match '
+      'branches length (${branches.length})',
+    );
+
     return StatefulShellRoute.indexedStack(
       parentNavigatorKey: parentNavigatorKey?.globalKey,
       pageBuilder: (context, state, navigationShell) {
         final data = _buildRouteData(state);
-        final shellChild =
-            builder(context, TpStatefulNavigationShell(navigationShell));
+        final shellChild = builder(context,
+            TpStatefulNavigationShell(navigationShell, branches.length));
 
         return _createTpPage(
           context: context,
@@ -440,7 +459,7 @@ class TpParamInfo {
 
 TpRouteData _buildRouteData(GoRouterState state) {
   final extraData = state.extra;
-  return _ContextRouteData(
+  return _GoRouterStateRouteData(
     fullPath: state.uri.toString(),
     pathParams: state.pathParameters,
     queryParams: state.uri.queryParameters,

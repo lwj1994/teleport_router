@@ -384,7 +384,6 @@ class MainShellRoute {
       MainDashBoradNavKey(),
     ],
     observersBuilder: () => [
-      TpRouteObserver(),
       AObserver(),
     ],
   );

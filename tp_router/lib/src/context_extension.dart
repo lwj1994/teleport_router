@@ -13,15 +13,15 @@ class TpRouterContext {
   const TpRouterContext(this.context);
 
   /// Pop routes until the first route in the stack.
-  Future<void> popToInitial() {
-    return TpRouter.instance.popToInitial(
+  void popToInitial() {
+    TpRouter.instance.popToInitial(
       context: context,
     );
   }
 
   /// Pop until the specified route is found.
-  Future<void> popTo(TpRouteData route) {
-    return TpRouter.instance.popTo(
+  void popTo(TpRouteData route) {
+    TpRouter.instance.popTo(
       route,
       context: context,
     );

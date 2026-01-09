@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
@@ -13,15 +14,28 @@ import 'page_factory.dart';
 ///
 /// This class provides a simple interface to configure and use
 /// the router with automatically generated routes.
+///
+/// **Usage Note**:
+/// This router must be initialized **early** in your application lifecycle (e.g. in `main()`),
+/// before any navigation actions are performed.
+///
+/// Example:
+/// ```dart
+/// void main() {
+///   final router = TpRouter(
+///     routes: [...], // Generated routes
+///   );
+///   runApp(MaterialApp.router(
+///     routerConfig: router.routerConfig,
+///   ));
+/// }
+/// ```
 class TpRouter {
   /// The underlying go_router instance.
   final GoRouter _goRouter;
 
   /// The list of registered routes.
   final List<TpRouteBase> _routes;
-
-  /// The route observer for tracking navigation stack.
-  final TpRouteObserver _observer;
 
   static TpRouter? _instance;
 
@@ -91,7 +105,8 @@ class TpRouter {
   factory TpRouter({
     required List<TpRouteBase> routes,
     Widget Function(BuildContext, TpRouteData)? errorBuilder,
-    TpRouteData? Function(BuildContext context, TpRouteData state)? redirect,
+    FutureOr<TpRouteData?> Function(BuildContext context, TpRouteData state)?
+        redirect,
     Listenable? refreshListenable,
     int redirectLimit = 5,
     bool routerNeglect = false,
@@ -139,20 +154,22 @@ class TpRouter {
     }
 
     // Convert TpRouteBase to GoRoute/ShellRoute
-    final config = TpRouterConfig(
-      defaultTransition: defaultTransition,
-      defaultTransitionDuration: defaultTransitionDuration,
-      defaultReverseTransitionDuration: defaultReverseTransitionDuration,
-      defaultPageType: defaultPageType,
-      defaultPageBuilder: defaultPageBuilder,
-    );
+    // Use provided config or construct from parameters
+    final effectiveConfig = config ??
+        TpRouterConfig(
+          defaultTransition: defaultTransition,
+          defaultTransitionDuration: defaultTransitionDuration,
+          defaultReverseTransitionDuration: defaultReverseTransitionDuration,
+          defaultPageType: defaultPageType,
+          defaultPageBuilder: defaultPageBuilder,
+        );
 
-    final goRoutes = routes.map((r) => r.toGoRoute(config: config)).toList();
+    final goRoutes =
+        routes.map((r) => r.toGoRoute(config: effectiveConfig)).toList();
 
     // Automatically inject TpRouteObserver for stack manipulation support
-    final tpObserver = TpRouteObserver();
     final allObservers = [
-      tpObserver,
+      TpNavigatorKeyRegistry.rootKey.observer,
       ...?observers, // User-provided observers come after
     ];
 
@@ -163,9 +180,9 @@ class TpRouter {
       errorBuilder: errorBuilder != null
           ? (context, state) => errorBuilder(context, _StateRouteData(state))
           : null,
-      redirect: (context, state) {
+      redirect: (context, state) async {
         if (redirect != null) {
-          final target = redirect(context, _StateRouteData(state));
+          final target = await redirect(context, _StateRouteData(state));
           return target?.fullPath;
         }
         return null;
@@ -181,17 +198,13 @@ class TpRouter {
       requestFocus: requestFocus,
     );
 
-    _instance = TpRouter._(goRouter, routes, tpObserver);
+    _instance = TpRouter._(goRouter, routes);
     return _instance!;
   }
 
   static String? _findInitialPath(TpRouteBase route) {
     if (route is TpRouteInfo) {
       if (route.isInitial) return route.path;
-      for (final child in route.children) {
-        final path = _findInitialPath(child);
-        if (path != null) return path;
-      }
     } else if (route is TpShellRouteInfo) {
       for (final child in route.routes) {
         final path = _findInitialPath(child);
@@ -208,7 +221,7 @@ class TpRouter {
     return null;
   }
 
-  TpRouter._(this._goRouter, this._routes, this._observer);
+  TpRouter._(this._goRouter, this._routes);
 
   /// Get the router configuration for MaterialApp.router().
   RouterConfig<Object> get routerConfig => _goRouter;
@@ -219,7 +232,7 @@ class TpRouter {
   /// Get the route observer for stack manipulation.
   ///
   /// This is used internally by delete() method.
-  TpRouteObserver get routeObserver => _observer;
+  TpRouteObserver get routeObserver => TpNavigatorKeyRegistry.rootKey.observer;
 
   /// Navigate to a route.
   ///
@@ -267,12 +280,9 @@ class TpRouter {
   /// Pop the current route from the navigation stack.
   void pop<T extends Object?>({
     T? result,
-    TpNavKey? navigatorKey,
-    BuildContext? context,
   }) {
-    final nav = _getNavigator(navigatorKey: navigatorKey, context: context);
-    if (nav.canPop()) {
-      nav.pop(result);
+    if (canPop) {
+      _goRouter.pop<T>(result);
     }
   }
 
@@ -282,7 +292,7 @@ class TpRouter {
   /// Get the current location.
   TpRouteData location({TpNavKey? navigatorKey, BuildContext? context}) {
     final observer = getObserver(navigatorKey: navigatorKey, context: context);
-    if (observer != null && observer.allRouteData.isNotEmpty) {
+    if (observer.allRouteData.isNotEmpty) {
       return observer.allRouteData.values.last;
     }
     return TpRouteData.fromPath('/');
@@ -291,20 +301,25 @@ class TpRouter {
   /// Pop routes until the predicate is satisfied.
   ///
   /// The [predicate] callback is called for each route on the stack (from top to bottom).
-  /// [data] will be provided if the route is a Tp-managed route, otherwise it will be null.
+  ///
+  /// - [route]: The raw Flutter Route instance.
+  /// - [data]: The associated [TpRouteData] if the route is managed by tp_router.
+  ///         If the route is not managed by tp_router (e.g. standard Dialog), `data` will be null.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Pop until we find the Home route
+  /// router.popUntil((route, data) => data?.routeName == 'Home');
+  /// ```
   void popUntil(
     bool Function(Route<dynamic> route, TpRouteData? data) predicate, {
     TpNavKey? navigatorKey,
     BuildContext? context,
-  }) async {
+  }) {
     final nav = context != null
         ? Navigator.of(context)
         : _getNavigator(navigatorKey: navigatorKey);
     final observer = _findObserverInNavigator(nav);
-
-    if (observer == null) {
-      return;
-    }
 
     // Iteratively check the top route and pop if predicate is not met
     while (observer.allRoutes.isNotEmpty) {
@@ -324,10 +339,10 @@ class TpRouter {
   }
 
   /// Pop until the first route in the stack.
-  Future<void> popToInitial({
+  void popToInitial({
     TpNavKey? navigatorKey,
     BuildContext? context,
-  }) async {
+  }) {
     popUntil((route, _) => route.isFirst,
         navigatorKey: navigatorKey, context: context);
   }
@@ -335,11 +350,11 @@ class TpRouter {
   /// Pop until the specified route is found.
   ///
   /// Matches by [TpRouteData.routeName] and [TpRouteData.fullPath].
-  Future<void> popTo(
+  void popTo(
     TpRouteData route, {
     TpNavKey? navigatorKey,
     BuildContext? context,
-  }) async {
+  }) {
     popUntil((r, data) => data == route,
         navigatorKey: navigatorKey, context: context);
   }
@@ -366,7 +381,6 @@ class TpRouter {
     final observer = _findObserverInNavigator(_getNavigator(
       navigatorKey: navigatorKey,
     ));
-    if (observer == null) return 0;
 
     final routesToRemove = <Route>[];
     for (final route in observer.allRoutes) {
@@ -392,14 +406,16 @@ class TpRouter {
   }
 
   /// Get the route observer for tracking navigation stack.
-  TpRouteObserver? getObserver({
+  TpRouteObserver getObserver({
     TpNavKey? navigatorKey,
     BuildContext? context,
   }) {
-    return _findObserverInNavigator(_getNavigator(
-      navigatorKey: navigatorKey,
-      context: context,
-    ));
+    if (context != null) {
+      return _findObserverInNavigator(_getNavigator(
+        context: context,
+      ));
+    }
+    return (navigatorKey ?? TpNavigatorKeyRegistry.rootKey).observer;
   }
 
   /// Internal helper to get NavigatorState.
@@ -414,13 +430,23 @@ class TpRouter {
     if (navigatorKey != null) {
       final key = navigatorKey.globalKey;
       if (key.currentState != null) return key.currentState!;
+      throw FlutterError(
+        'Navigator for $navigatorKey is not mounted yet. '
+        'Ensure the Navigator widget associated with this key is in the widget tree.',
+      );
     }
     // Fallback to root
     return TpNavigatorKeyRegistry.rootKey.globalKey.currentState!;
   }
 
-  TpRouteObserver? _findObserverInNavigator(NavigatorState navigator) {
-    return _searchObservers(navigator.widget.observers);
+  TpRouteObserver _findObserverInNavigator(NavigatorState navigator) {
+    final observer = _searchObservers(navigator.widget.observers);
+    if (observer != null) return observer;
+    throw FlutterError(
+      'TpRouteObserver not found in Navigator. '
+      'This is required for tp_router to function properly. '
+      'Ensure you are using TpRouter or manually adding TpRouteObserver to your Navigator.',
+    );
   }
 
   TpRouteObserver? _searchObservers(List<NavigatorObserver> observers) {

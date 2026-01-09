@@ -6,11 +6,23 @@ import 'tp_router.dart';
 
 /// Abstract base class for type-safe navigator keys.
 ///
+/// A [TpNavKey] serves as a strict identifier for a specific `Navigator`.
+/// Unlike a raw string or [GlobalKey], it encapsulates:
+/// 1. The [GlobalKey<NavigatorState>] for controlling navigation.
+/// 2. The [TpRouteObserver] for tracking the route stack of that navigator.
+///
 /// Extend this class to define your own navigator keys with compile-time safety.
 /// This is the recommended approach for production apps as it provides:
 /// - Compile-time type checking
 /// - Easy refactoring
 /// - Centralized key definitions
+/// - **Automatic Observer Injection**: When used in shell routes, it automatically injects
+///   the associated observer into the navigator.
+///
+/// **Important Check**:
+/// A [TpNavKey] instance corresponds to a unique `GlobalKey`. Do **not** use the same
+/// key instance (or logically equal instances) for multiple `ShellRoute`s or `Navigator`s
+/// simultaneously. Doing so will cause a "Duplicate GlobalKey" error in Flutter.
 ///
 /// ## Usage in Annotations
 ///
@@ -119,7 +131,7 @@ abstract class TpNavKey {
   ///
   /// This is a shortcut for [TpRouter.pop] with `navigatorKey: this`.
   void pop<T extends Object?>([T? result]) {
-    TpRouter.instance.pop(result: result, navigatorKey: this);
+    TpRouter.instance.pop<T>(result: result);
   }
 
   /// Check if this navigator can pop.
@@ -128,6 +140,8 @@ abstract class TpNavKey {
   /// Get the current location in this navigator.
   ///
   /// This is a shortcut for [TpRouter.location] with `navigatorKey: this`.
+  ///
+  /// **Note**: [TpRouter] must be initialized before calling this.
   TpRouteData get location => TpRouter.instance.location(navigatorKey: this);
 }
 

@@ -6,9 +6,22 @@ import 'navi_key.dart';
 import 'page_factory.dart';
 
 /// Configuration for TpRouter options.
+///
+/// These settings serve as global defaults for the application.
+/// Individual routes can override these settings by providing their own values.
+///
+/// Priority: Route-specific setting > TpRouterConfig setting > System default
 class TpRouterConfig {
+  /// Default transition builder for all routes.
+  /// Overridden by [TpRouteInfo.transition].
   final TpTransitionsBuilder? defaultTransition;
+
+  /// Default transition duration.
+  /// Overridden by [TpRouteInfo.transitionDuration].
   final Duration? defaultTransitionDuration;
+
+  /// Default reverse transition duration.
+  /// Overridden by [TpRouteInfo.reverseTransitionDuration].
   final Duration? defaultReverseTransitionDuration;
 
   const TpRouterConfig({
@@ -19,7 +32,12 @@ class TpRouterConfig {
     this.defaultPageBuilder,
   });
 
+  /// Default page type (e.g. material, cupertino, transparent).
+  /// Overridden by [TpRouteInfo.type].
   final TpPageType? defaultPageType;
+
+  /// Default page factory for custom page construction.
+  /// Overridden by [TpRouteInfo.pageBuilder].
   final TpPageFactory? defaultPageBuilder;
 }
 

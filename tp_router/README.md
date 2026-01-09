@@ -15,6 +15,7 @@ TpRouter is built on top of [go_router](https://pub.dev/packages/go_router)—th
 ## Table of Contents
 
 - [Features](#-features)
+- [Core Concepts](#-core-concepts)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
   - [1. Define NavKeys](#1-define-navkeys)
@@ -62,7 +63,35 @@ TpRouter is built on top of [go_router](https://pub.dev/packages/go_router)—th
 
 ---
 
-## � Installation
+## 🧩 Core Concepts
+
+Understanding how TpRouter works helps you leverage its full power.
+
+### 1. The Triad of Navigation
+TpRouter connects three key pieces:
+- **Routes (`@TpRoute`)**: Static configuration of *what* screens you have.
+- **Generator**: Converts annotations into strongly-typed classes (`UserRoute`, `HomeRoute`).
+- **Router (`TpRouter`)**: The runtime engine that manages the navigation stack using `go_router`.
+
+### 2. TpNavKey: The Bridge
+`TpNavKey` is more than just a `GlobalKey`. It is the **binding agent** that connects:
+- A Shell (UI container)
+- A Navigator (Flutter's navigation stack)
+- An Observer (TpRouter's tracking system)
+
+When you define `class MainKey extends TpNavKey`, you are creating a unique identifier that ensures your `ShellRoute` uses the *exact same* navigator instance that your `routes` are trying to navigate into.
+
+### 3. Smart Observation
+TpRouter automatically injects `TpRouteObserver` into every navigator managed by a `TpNavKey` (especially in ShellRoutes). This observer tracks the live route stack, enabling advanced features like:
+- `popUntil(predicate)`
+- `popToInitial()`
+- `removeWhere()`
+
+Normal `go_router` doesn't easily support these because it manages URLs, not Flutter Route objects. TpRouter bridges this gap by watching the actual `Navigator` activities.
+
+---
+
+## Installation
 
 Add the following to your `pubspec.yaml`:
 
@@ -118,7 +147,7 @@ Mark your container widget (e.g., a page with `BottomNavigationBar`) with `@TpSh
 @TpShellRoute(
   navigatorKey: MainNavKey, // <--- Identified by this Key
   isIndexedStack: true,     // Enable stateful nested navigation
-  branchKeys: [HomeNavKey, SettingsNavKey], // <--- Define branch key order
+  branchKeys: [HomeNavKey, SettingsNavKey], // <--- Define branch key types (not instances)
 )
 class MainShellPage extends StatelessWidget {
   final TpStatefulNavigationShell navigationShell;
@@ -210,11 +239,17 @@ HomeRoute().tp(clearHistory: true);
 ```dart
 // Pop topmost route
 context.pop();
-// or
-TpRouter.instance.pop();
-
-// Pop with result
+// or with result
 context.pop(result: 'selected_item');
+
+// --- Using context extensions (Recommended) ---
+
+// Access TpRouter helper via context
+context.tpRouter.popTo(HomeRoute());
+
+context.tpRouter.popToInitial();
+
+// --- Using Static Instance (Global) ---
 
 // Pop until a specific route
 TpRouter.instance.popTo(HomeRoute());
@@ -287,7 +322,12 @@ class ProfilePage extends StatelessWidget {
 ProfileRoute(user: currentUser).tp();
 ```
 
-> ⚠️ **Note**: Extra objects are NOT preserved after browser refresh or app restart. For persistent data, use path/query params or state management.
+> ⚠️ **Note**: Extra objects are **NOT** preserved during:
+> - Browser Refresh
+> - Direct URL entry (e.g. typing URL in address bar)
+> - App kill/restart
+> 
+> For persistent data, use path/query params or state management services.
 
 ### Combined Example
 
@@ -494,7 +534,7 @@ See [go_router deep linking guide](https://pub.dev/documentation/go_router/lates
 ```dart
 @TpRoute(
   path: '/details',
-  transition: TpTransition.slide, // slide, fade, scale, none, cupertino
+  transition: TpSlideTransition(), // TpSlideTransition, TpFadeTransition, etc.
   transitionDuration: 300,        // milliseconds
   reverseTransitionDuration: 200, // milliseconds (optional)
 )
@@ -504,11 +544,11 @@ class DetailsPage extends StatelessWidget { ... }
 **Available transitions:**
 | Transition | Description |
 |------------|-------------|
-| `TpTransition.slide` | Slide from right |
-| `TpTransition.fade` | Fade in/out |
-| `TpTransition.scale` | Scale up/down |
-| `TpTransition.none` | No animation |
-| `TpTransition.cupertino` | iOS-style slide |
+| `TpSlideTransition` | Slide from right |
+| `TpFadeTransition` | Fade in/out |
+| `TpScaleTransition` | Scale up/down |
+| `TpNoTransition` | No animation |
+| `TpCupertinoPageTransition` | iOS-style slide |
 
 ### Custom Transitions
 
@@ -739,8 +779,8 @@ TpRouter(
   // Page type: auto, material, cupertino, swipeBack
   defaultPageType: TpPageType.auto,
   
-  // Custom navigator key
-  navigatorKey: TpNavKey('root'),
+  // Custom navigator key (must be a specific key instance)
+  navigatorKey: const RootNavKey(),
   
   // Restoration for state persistence
   restorationScopeId: 'app_router',

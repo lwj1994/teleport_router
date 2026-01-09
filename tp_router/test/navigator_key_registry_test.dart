@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tp_router/src/navigator_key_registry.dart';
 import 'package:tp_router/tp_router.dart';
 
 void main() {

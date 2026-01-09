@@ -1,6 +1,4 @@
-# TpRouter 🚀
-
-> 告别路由表地狱！用注解优雅地管理 Flutter 路由 ✨
+# Flutter 路由神器 TpRouter，这也太好用了吧！😭
 
 | Package | Version |
 |---------|---------|
@@ -8,40 +6,47 @@
 | [tp_router_annotation](https://pub.dev/packages/tp_router_annotation) | [![pub package](https://img.shields.io/pub/v/tp_router_annotation.svg)](https://pub.dev/packages/tp_router_annotation) |
 | [tp_router_generator](https://pub.dev/packages/tp_router_generator) | [![pub package](https://img.shields.io/pub/v/tp_router_generator.svg)](https://pub.dev/packages/tp_router_generator) |
 
-**底层基于 [go_router](https://pub.dev/packages/go_router)**（Flutter 官方路由包），核心功能稳如老狗 🐕 深度链接、Web 支持、嵌套导航全都有！TpRouter 只是在上面加了一层更人性化的注解 API，让你写起来更爽～
+家人们！发现一个超级好用的 Flutter 路由库 **TpRouter**！🚀
+它是基于 `go_router` 封装的，意味着你拥有官方路由的所有强大功能（Deep Link、Web 支持、嵌套路由），但是用法简化了 100 倍！😍 告别手写字符串跳转，从此爱上写路由！
 
 ---
 
-## 📑 目录
+## ✨ 为什么选它？
 
-- [为什么选择 TpRouter](#-为什么选择-tprouter)
-- [安装](#-安装)
-- [快速上手](#-快速上手)
-- [参数传递](#-参数传递)
-- [Shell 嵌套路由](#-shell-嵌套路由)
-- [路由守卫](#-路由守卫)
-- [响应式路由](#-响应式路由)
-- [页面配置](#-页面配置)
-- [转场动画](#-转场动画)
-- [TpRouter 配置项](#-tprouter-配置项)
+- **🗝️ 嵌套路由不迷路**：只要告诉路由 "我爸是谁（NavKey）"，自动给你安排得明明白白！
+- **📐 类型安全太香了**：`UserRoute(id: 1).tp()`，再也不用担心拼错字符串了！
+- **🐚 底部导航栏神器**：注解配置 BottomNav，几行代码搞定复杂嵌套！
+- **🛡️ 守卫鉴权**：类型安全的路由守卫，未登录自动跳走，甚至还能监听登录状态自动刷新！
+- **🧩 智能代码生成**：参数、返回值、Deep Link 全部自动搞定！
 
 ---
 
-## ✨ 为什么选择 TpRouter
+## 🧩 核心原理大揭秘 (必看！)
 
-| 痛点 | go_router 原生 | TpRouter 解决方案 |
-|------|---------------|------------------|
-| 路由表维护 | 手动维护嵌套结构 😵 | 注解自动生成，0 配置 |
-| 类型安全 | 手拼 URL 字符串 | `UserRoute(id: 1).tp()` |
-| 参数传递 | 手动解析 `state.params` | `@Path` `@Query` 自动注入 |
-| Shell 嵌套 | 复杂的手动配置 | 只需声明 `parentNavigatorKey` |
-| 守卫逻辑 | 全局 redirect 函数 | 类型安全的 `TpRedirect<T>` |
+想用好 TpRouter，这这三个概念一定要懂，面试也能吹！
 
-**一句话总结**：用 go_router 的稳定内核 + 更优雅的开发体验 💪
+### 1. 黄金三角
+- **Routes (`@TpRoute`)**：你的页面配置图纸。
+- **Generator**：搬砖工，把你写的注解变成代码 (`UserRoute`)。
+- **Router (`TpRouter`)**：大管家，底层指挥 `go_router` 干活。
+
+### 2. TpNavKey：真正的幕后大佬
+`TpNavKey` 不仅仅是个 `GlobalKey`！它是连接 **Shell (UI容器)**、**Navigator (页面栈)** 和 **Observer (观察者)** 的桥梁。
+👉 **敲黑板**：定义 `class MainKey extends TpNavKey`，就是给自己造了一把专属钥匙，能够精准控制特定的导航栈！
+
+### 3. 智能观察者 (Smart Observation)
+TpRouter 会自动给每个 `TpNavKey` 注入特工 `TpRouteObserver`。
+这意味着你可以随时随地：
+- `popUntil` (一直退到某页)
+- `removeWhere` (把某页偷偷删掉)
+- `popToInitial` (一键回到首页)
+这些操作在原生 `go_router` 里可是很难搞的哦！TpRouter 帮你做到了！�
 
 ---
 
-## 📦 安装
+## 📦 安装 (Installation)
+
+在 `pubspec.yaml` 里加上：
 
 ```yaml
 dependencies:
@@ -53,518 +58,186 @@ dev_dependencies:
   tp_router_generator: ^0.5.0
 ```
 
-生成路由代码：
+运行小助手：
 ```bash
 dart run build_runner build
 ```
 
 ---
 
-## 🚀 快速上手
+## 🚀 快速上手保姆级教程
 
-### 3 步搞定基础路由！
+### 1. 造钥匙 (Define NavKeys)
+新建文件 `lib/routes/nav_keys.dart`：
 
-**Step 1️⃣ 给页面加注解**
 ```dart
-@TpRoute(path: '/login')
-class LoginPage extends StatelessWidget { ... }
+// 主 Shell 的钥匙 (比如 BottomNavigationBar)
+class MainNavKey extends TpNavKey {
+  const MainNavKey() : super('main');
+}
 
-@TpRoute(path: '/home', isInitial: true) // 首页加 isInitial
-class HomePage extends StatelessWidget { ... }
+// 首页的钥匙 (Branch 0)
+class HomeNavKey extends TpNavKey {
+  const HomeNavKey() : super('main', branch: 0);
+}
 ```
 
-**Step 2️⃣ 初始化 Router**
-```dart
-import 'routes/route.gr.dart'; // 生成的文件
+### 2. 搭架子 (Define Shells)
+给你的主页面加上注解，它是容器！
 
+```dart
+@TpShellRoute(
+  navigatorKey: MainNavKey, // <--- 认领钥匙
+  isIndexedStack: true,     // 开启状态保持 (切换 Tab 不重置)
+  branchKeys: [HomeNavKey, SettingsNavKey], // <--- 定义分支
+)
+class MainShellPage extends StatelessWidget {
+  final TpStatefulNavigationShell navigationShell; // 拿到控制器
+  // ...
+  // build 里面用 navigationShell 控制 Tab 切换
+}
+```
+
+### 3. 写页面 (Define Routes)
+给页面加注解，想嵌套就认爹！
+
+```dart
+// 首页，认 HomeNavKey 当爹，自动放进 Branch 0
+@TpRoute(
+  path: '/home', 
+  isInitial: true,
+  parentNavigatorKey: HomeNavKey 
+)
+class HomePage extends StatelessWidget { ... }
+
+// 详情页，没有爹，就是顶层页面
+@TpRoute(path: '/detail')
+class DetailPage extends StatelessWidget { ... }
+```
+
+### 4. 跑起来 (Initialize)
+在 `main.dart` 里初始化：
+
+```dart
 void main() {
-  final router = TpRouter(routes: tpRoutes);
-  
+  final router = TpRouter(
+    routes: tpRoutes, // 生成的代码
+  );
+
   runApp(MaterialApp.router(
     routerConfig: router.routerConfig,
   ));
 }
 ```
 
-**Step 3️⃣ 开始导航！**
-```dart
-// 跳转
-HomeRoute().tp();
+---
 
-// 带返回值
+## 🧭 导航操作，丝滑！
+
+### 类型安全跳转
+```dart
+// 普通跳转
+UserRoute(id: 123).tp();
+
+// 等待返回值
 final result = await SelectRoute().tp<String>();
 
-// 替换当前页
+// 替换当前页 (Replace)
 LoginRoute().tp(replacement: true);
 
-// 清空历史栈（类似 go）
-HomeRoute().tp(clearHistory: true);
+// 清空栈跳转 (如退出登录)
+LoginRoute().tp(clearHistory: true);
 ```
 
-就这么简单！不用维护路由表，不用手拼 URL 🎉
+### 栈操作 (Pop & Stack)
+```dart
+// 推荐用 context 扩展，更安全！
+context.tpRouter.popTo(HomeRoute());
+
+context.tpRouter.popToInitial();
+
+// 全局静态调用 (不推荐，除非没办法)
+TpRouter.instance.pop();
+```
 
 ---
 
-## 📦 参数传递
+## � 传参神器
 
-TpRouter 支持三种参数类型，全部自动解析！
+不用解析 String，直接拿对象！
 
-### 路径参数 `@Path`
-
+### Path & Query 参数
 ```dart
 @TpRoute(path: '/user/:id')
 class UserPage extends StatelessWidget {
-  const UserPage({required this.userId});
+  @Path('id') final String userId; // 自动从 URL 拿！
+  @Query('q') final String? keyword; // 自动从 ?q=xxx 拿！
   
-  @Path('id')
-  final String userId;
+  const UserPage({required this.userId, this.keyword});
 }
-
-// 导航
-UserRoute(userId: '123').tp(); // -> /user/123
 ```
 
-### 查询参数 `@Query`
-
+### 传递对象 (Extra)
 ```dart
-@TpRoute(path: '/search')
-class SearchPage extends StatelessWidget {
-  const SearchPage({this.keyword, this.page});
-  
-  @Query('q')
-  final String? keyword;
-  
-  @Query('page')
-  final int? page; // 自动转 int！
-}
-
-// 导航
-SearchRoute(keyword: 'flutter', page: 2).tp(); // -> /search?q=flutter&page=2
+UserRoute(userObj: myUser).tp();
 ```
 
-### Extra 复杂对象
-
-不想序列化？直接传对象！
-
-```dart
-@TpRoute(path: '/detail')
-class DetailPage extends StatelessWidget {
-  const DetailPage({required this.item});
-  
-  final Product item; // 复杂对象，内存传递
-}
-
-// 导航
-DetailRoute(item: myProduct).tp();
-```
-
-> ⚠️ Extra 对象在浏览器刷新后会丢失，需要持久化的数据请用 Path/Query
-
-### 组合使用
-
-```dart
-@TpRoute(path: '/order/:orderId')
-class OrderPage extends StatelessWidget {
-  const OrderPage({
-    required this.orderId,
-    this.from,
-    required this.orderData,
-  });
-  
-  @Path('orderId')
-  final String orderId;
-  
-  @Query('from')
-  final String? from;
-  
-  final Order orderData; // Extra
-}
-```
+> 💣 **避坑指南 (重要！)**
+> **Extra 对象存在内存里！**如果用户刷新浏览器、直接输入 URL 进入、或者 App 进程被杀，**Extra 会变成 null**！
+> **持久化数据请务必用 Path/Query 参数或者本地存储！** 别怪我没提醒你哦！😭
 
 ---
 
-## 🐚 Shell 嵌套路由
+## 🛡️ 路由守卫 (Guards)
 
-底部导航栏？抽屉菜单？TpRouter 让嵌套路由变得超简单！
-
-### Step 1️⃣ 定义 NavKey
-
-```dart
-// Shell 的 Key
-class MainShellKey extends TpNavKey {
-  const MainShellKey() : super('main');
-}
-
-// 各个 Tab 的 Key
-class HomeTabKey extends TpNavKey {
-  const HomeTabKey() : super('main', branch: 0);
-}
-
-class ProfileTabKey extends TpNavKey {
-  const ProfileTabKey() : super('main', branch: 1);
-}
-```
-
-### Step 2️⃣ 定义 Shell
-
-```dart
-@TpShellRoute(
-  navigatorKey: MainShellKey,
-  branchKeys: [HomeTabKey, ProfileTabKey],
-  isIndexedStack: true, // 保持各 tab 状态
-)
-class MainShell extends StatelessWidget {
-  final TpStatefulNavigationShell navigationShell;
-  const MainShell({required this.navigationShell, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: navigationShell.currentIndex,
-        onTap: (i) => navigationShell.tp(i), // 切换 tab
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '首页'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: '我的'),
-        ],
-      ),
-    );
-  }
-}
-```
-
-### Step 3️⃣ 关联子路由
-
-只需要声明 `parentNavigatorKey`，生成器自动搞定嵌套关系！
-
-```dart
-@TpRoute(path: '/home', parentNavigatorKey: HomeTabKey)
-class HomePage extends StatelessWidget { ... }
-
-@TpRoute(path: '/profile', parentNavigatorKey: ProfileTabKey)
-class ProfilePage extends StatelessWidget { ... }
-```
-
-**就这样！不用手动维护路由树结构** 🎯
-
----
-
-## 🛡️ 路由守卫
-
-### 页面级重定向
-
-```dart
-class AuthGuard extends TpRedirect<ProtectedRoute> {
-  @override
-  FutureOr<TpRouteData?> handle(BuildContext context, ProtectedRoute route) {
-    if (!AuthService.isLoggedIn) {
-      return LoginRoute(); // 没登录？踢走！
-    }
-    return null; // 返回 null = 放行
-  }
-}
-
-@TpRoute(path: '/vip', redirect: AuthGuard)
-class VipPage extends StatelessWidget { ... }
-```
-
-### 全局重定向
-
-```dart
-final router = TpRouter(
-  routes: tpRoutes,
-  redirect: (context, state) {
-    if (needOnboarding && state.fullPath != '/onboarding') {
-      return OnboardingRoute();
-    }
-    return null;
-  },
-);
-```
-
-### 返回拦截 OnExit
-
-表单没保存就想跑？拦住！
-
-```dart
-class SaveGuard extends TpOnExit<EditRoute> {
-  @override
-  FutureOr<bool> onExit(BuildContext context, EditRoute route) async {
-    if (hasUnsavedChanges) {
-      return await showDialog(
-        context: context,
-        builder: (c) => AlertDialog(
-          title: Text('有未保存的更改'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: Text('取消')),
-            TextButton(onPressed: () => Navigator.pop(c, true), child: Text('放弃')),
-          ],
-        ),
-      ) ?? false;
-    }
-    return true;
-  }
-}
-
-@TpRoute(path: '/edit', onExit: SaveGuard)
-class EditPage extends StatelessWidget { ... }
-```
-
----
-
-## 🔄 响应式路由
-
-### 核心问题：登录后卡在登录页？
-
-这是 go_router 新手最常遇到的坑！原因是 **Router 不知道登录状态变了**。
-
-### 解决方案：refreshListenable
-
-```dart
-// 1. 创建可监听的 Auth 服务
-class AuthService extends ChangeNotifier {
-  static final instance = AuthService();
-  
-  bool _isLoggedIn = false;
-  bool get isLoggedIn => _isLoggedIn;
-
-  void login() {
-    _isLoggedIn = true;
-    notifyListeners(); // 🔔 通知 Router！
-  }
-
-  void logout() {
-    _isLoggedIn = false;
-    notifyListeners();
-  }
-}
-
-// 2. 传给 TpRouter
-final router = TpRouter(
-  routes: tpRoutes,
-  refreshListenable: AuthService.instance, // 👈 关键！
-  redirect: (context, state) {
-    final loggedIn = AuthService.instance.isLoggedIn;
-    final onLoginPage = state.fullPath == '/login';
-    
-    if (!loggedIn && !onLoginPage) return LoginRoute();
-    if (loggedIn && onLoginPage) return HomeRoute();
-    return null;
-  },
-);
-```
-
-**现在当你调用 `AuthService.instance.login()` 时，Router 会自动重新评估并跳转！** 🪄
-
----
-
-## 📄 页面配置
-
-注解里可以配置超多东西！
-
-### 页面类型 TpPageType
-
-```dart
-@TpRoute(
-  path: '/settings',
-  type: TpPageType.cupertino, // 强制 iOS 风格
-)
-class SettingsPage extends StatelessWidget { ... }
-```
-
-| 类型 | 说明 |
-|------|------|
-| `auto` | 自动适配平台（默认） |
-| `material` | Android 风格 |
-| `cupertino` | iOS 风格 |
-| `swipeBack` | 全屏滑动返回 |
-| `custom` | 自定义 Page |
-
-### 模态弹窗
-
-```dart
-@TpRoute(
-  path: '/create',
-  fullscreenDialog: true, // iOS 风格模态，显示 X 关闭按钮
-)
-class CreatePage extends StatelessWidget { ... }
-```
-
-### 透明页面
-
-做底部弹出框、蒙层？用这个！
-
-```dart
-@TpRoute(
-  path: '/overlay',
-  opaque: false,                    // 透明背景
-  barrierColor: Color(0x80000000),  // 半透明黑色蒙层
-  barrierDismissible: true,         // 点击蒙层关闭
-)
-class OverlayPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        height: 300,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Text('我是底部弹窗'),
-      ),
-    );
-  }
-}
-```
-
-### @TpRoute 完整参数
-
-```dart
-@TpRoute(
-  // 核心
-  path: '/user/:id',              // 路径
-  isInitial: false,               // 是否初始路由
-  parentNavigatorKey: SomeNavKey, // 父级 Shell
-  
-  // 守卫
-  redirect: AuthGuard,            // 重定向
-  onExit: SaveGuard,              // 返回拦截
-  
-  // 页面类型
-  type: TpPageType.auto,
-  pageBuilder: MyCustomPage,      // 自定义 Page
-  
-  // 转场
-  transition: TpSlideTransition(),
-  transitionDuration: Duration(milliseconds: 300),
-  reverseTransitionDuration: Duration(milliseconds: 300),
-  
-  // 弹窗/模态
-  fullscreenDialog: false,
-  opaque: true,
-  barrierDismissible: false,
-  barrierColor: null,
-  barrierLabel: null,
-  
-  // 状态
-  maintainState: true,
-)
-```
-
-### @TpShellRoute 完整参数
-
-```dart
-@TpShellRoute(
-  // 核心
-  navigatorKey: MainNavKey,           // 必填
-  parentNavigatorKey: RootNavKey,     // 嵌套 Shell
-  isIndexedStack: true,               // 保持分支状态
-  branchKeys: [HomeKey, ProfileKey],  // 分支 Key 列表
-  
-  // 观察者
-  observers: [AnalyticsObserver],     // NavigatorObserver 列表
-  
-  // 页面配置（同 TpRoute）
-  type: TpPageType.material,
-  fullscreenDialog: false,
-  opaque: true,
-  // ...
-)
-```
-
----
-
-## 🎨 转场动画
-
-### 内置动画
-
-```dart
-@TpRoute(
-  path: '/detail',
-  transition: TpSlideTransition(),    // 滑动
-  // TpFadeTransition()               // 淡入淡出
-  // TpScaleTransition()              // 缩放
-  // TpNoTransition()                 // 无动画
-  // TpCupertinoPageTransition()      // iOS 风格
-  transitionDuration: Duration(milliseconds: 300),
-)
-```
-
-### 全局默认动画
-
-```dart
-final router = TpRouter(
-  routes: tpRoutes,
-  defaultTransition: TpSlideTransition(),
-  defaultTransitionDuration: Duration(milliseconds: 250),
-);
-```
-
-### 滑动返回
-
-```dart
-final router = TpRouter(
-  routes: tpRoutes,
-  defaultPageType: TpPageType.swipeBack, // 全局开启
-);
-```
-
----
-
-## ⚙️ TpRouter 配置项
+### 全局守卫 (Global Redirect)
+做登录检查最合适！
 
 ```dart
 TpRouter(
-  routes: tpRoutes,
-  
-  // 初始位置
-  initialLocation: '/home',
-  
-  // 全局重定向
-  redirect: (context, state) => null,
-  
-  // 响应式触发器
-  refreshListenable: authNotifier,
-  
-  // 错误页
-  errorBuilder: (context, state) => ErrorPage(error: state.error),
-  
-  // 调试日志
-  debugLogDiagnostics: true,
-  
-  // 转场默认值
-  defaultTransition: TpSlideTransition(),
-  defaultTransitionDuration: Duration(milliseconds: 300),
-  
-  // 页面类型
-  defaultPageType: TpPageType.auto,
-  
-  // 重定向次数限制
-  redirectLimit: 5,
-  
-  // 状态恢复
-  restorationScopeId: 'app_router',
-);
+  refreshListenable: Auth.instance, // 监听登录状态变化！
+  redirect: (context, state) async {
+    final bool loggedIn = await Auth.instance.checkLogin();
+    if (!loggedIn && state.fullPath != '/login') {
+      return LoginRoute(); // 没登录？去登录页！
+    }
+    return null; // 放行
+  },
+)
 ```
 
-### build.yaml 配置
-
-```yaml
-targets:
-  $default:
-    builders:
-      tp_router_generator:
-        options:
-          output: lib/routes/app_routes.dart # 自定义输出路径
+### 单个路由守卫
+```dart
+@TpRoute(path: '/vip', redirect: VipGuard)
+class VipPage ...
 ```
 
 ---
 
-## 💬 最后
+## 🎨 动画 & 页面配置
 
-有问题欢迎提 Issue！觉得好用的话给个 ⭐️ 吧～
+小红书风格的左滑返回？安排！
 
-**Happy Routing!** 🎉
+```dart
+@TpRoute(
+  path: '/details',
+  transition: TpSlideTransition(), // 右边滑入
+  // 或者
+  type: TpPageType.swipeBack, // 全屏左滑返回 (类似 iOS)
+)
+```
+
+还有透明弹窗 (Transparent Page)：
+```dart
+@TpRoute(
+  opaque: false, // 透明！
+  barrierColor: Color(0x80000000), // 半透明遮罩
+  fullscreenDialog: true, // iOS 模态效果
+)
+class MyDialogPage ...
+```
+
+---
+
+好啦，TpRouter 的精髓都在这里了！快去试试吧，真的能省下好多时间摸鱼！�
+如果有问题，欢迎提 Issue 哦！❤️
