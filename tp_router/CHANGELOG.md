@@ -1,3 +1,8 @@
+## 0.5.1
+* **Docs**: Refactored `README_zh.md` to be more modular and detailed.
+* **Fix**: Added explicit version constraint `^0.5.0` for `tp_router_annotation` to prevent downgrade analysis failure.
+* **Fix**: Replaced deprecated `withOpacity` with `withValues` in `SwipeBackWrapper`.
+
 ## 0.5.0
 * **Breaking Change**: Removed `goBranch` method. Renamed to `tp(index)` in `TpStatefulNavigationShell`.
 * **Breaking Change**: `TpRouter.tp()` no longer accepts `navigatorKey` or `context`. Use `NavKey` for route definition/linking only.

@@ -149,7 +149,7 @@ class _SwipeBackWrapperState extends State<SwipeBackWrapper>
                 boxShadow: [
                   if (currentOffset > 0)
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
+                      color: Colors.black.withValues(alpha: 0.15),
                       blurRadius: 10,
                       spreadRadius: 1,
                       offset: const Offset(-5, 0),
