@@ -1,3 +1,11 @@
+## 0.6.0
+* **Breaking Change**: `TpRouter` constructor now prioritizes the `config` object if provided. `redirect` parameters must now be `FutureOr` compatible.
+* **Feature**: Added `context.tpRouter` extension for context-aware navigation and popping.
+* **Feature**: `TpStatefulNavigationShell.tp()` now includes bounds checking for safer branch switching.
+* **Fix**: Resolved `TpRouteObserver` memory leak by resetting state on Navigator changes.
+* **Fix**: Logic improvements for `popUntil` and `removeWhere`.
+* **Docs**: Comprehensive documentation update including new "Core Concepts" and "Little Red Book" style Chinese docs.
+
 ## 0.5.1
 * **Docs**: Complete rewrite of `README.md` with comprehensive TOC and advanced usage guide.
 * **Docs**: Rewrote `README_zh.md` in casual style with full feature coverage.

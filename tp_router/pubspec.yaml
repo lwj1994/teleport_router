@@ -1,6 +1,6 @@
 name: tp_router
 description: A simplified Flutter router based on go_router with annotation support.
-version: 0.5.1
+version: 0.6.0
 homepage: https://github.com/lwj1994/tp_router
 issue_tracker: https://github.com/lwj1994/tp_router/issues
 
@@ -25,4 +25,4 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   build_runner: ^2.4.0
-  tp_router_generator: ^0.1.0
+  tp_router_generator: ^0.6.0
