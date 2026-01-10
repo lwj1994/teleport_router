@@ -1,3 +1,9 @@
+## 0.6.1
+* **Refactor**: Internal overhaul of `TpRouteData` to use `GoRouterStateData` directly, improving performance and reducing object creation.
+* **Refactor**: Split `createTpPage` configuration into `TpPageConfig` for better maintainability.
+* **Refactor**: Standardized redirect logic to consistently use `GoRouterStateData`.
+* **Fix**: Unified redirect handling across `TpRouteInfo` and `TpRouter`.
+
 ## 0.6.0
 * **Breaking Change**: `TpRouter` constructor now prioritizes the `config` object if provided. `redirect` parameters must now be `FutureOr` compatible.
 * **Feature**: Added `context.tpRouter` extension for context-aware navigation and popping.

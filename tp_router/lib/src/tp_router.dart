@@ -178,11 +178,11 @@ class TpRouter {
       initialLocation: startLoc,
       initialExtra: initialExtra,
       errorBuilder: errorBuilder != null
-          ? (context, state) => errorBuilder(context, _StateRouteData(state))
+          ? (context, state) => errorBuilder(context, GoRouterStateData(state))
           : null,
       redirect: (context, state) async {
         if (redirect != null) {
-          final target = await redirect(context, _StateRouteData(state));
+          final target = await redirect(context, GoRouterStateData(state));
           return target?.fullPath;
         }
         return null;
@@ -468,38 +468,4 @@ class TpRouter {
   void dispose() {
     _goRouter.dispose();
   }
-}
-
-/// Internal implementation of TpRouteData that wraps GoRouterState.
-class _StateRouteData extends TpRouteData {
-  final GoRouterState _state;
-
-  const _StateRouteData(this._state);
-
-  @override
-  String? get routeName => _state.name;
-
-  @override
-  String get fullPath => _state.uri.toString();
-
-  @override
-  Uri get uri => _state.uri;
-
-  @override
-  Map<String, String> get pathParams => _state.pathParameters;
-
-  @override
-  Map<String, String> get queryParams => _state.uri.queryParameters;
-
-  @override
-  Map<String, dynamic> get extra {
-    final e = _state.extra;
-    if (e is Map<String, dynamic>) {
-      return e;
-    }
-    return const {};
-  }
-
-  @override
-  Object? get error => _state.error;
 }

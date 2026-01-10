@@ -124,16 +124,7 @@ abstract class TpRouteData {
   /// final userId = data.getInt('id');
   /// ```
   static TpRouteData of(BuildContext context) {
-    final state = GoRouterState.of(context);
-    final extraData = state.extra;
-    return _ContextRouteData(
-      fullPath: state.uri.toString(),
-      routeName: state.name ?? state.uri.toString(),
-      pathParams: state.pathParameters,
-      queryParams: state.uri.queryParameters,
-      pageKey: state.pageKey,
-      extra: extraData,
-    );
+    return GoRouterStateData(GoRouterState.of(context));
   }
 
   /// Navigate to this route.
@@ -343,15 +334,39 @@ extension TpRouteDataExtension on BuildContext {
   /// final name = data.getString('name');
   /// ```
   TpRouteData get tpRouteData {
-    final state = GoRouterState.of(this);
-    final extraData = state.extra;
-    return _ContextRouteData(
-      fullPath: state.uri.toString(),
-      routeName: state.name ?? state.uri.toString(),
-      pathParams: state.pathParameters,
-      queryParams: state.uri.queryParameters,
-      pageKey: state.pageKey,
-      extra: extraData is Map<String, dynamic> ? extraData : const {},
-    );
+    return GoRouterStateData(GoRouterState.of(this));
   }
+}
+
+/// Implementation of [TpRouteData] that wraps [GoRouterState].
+///
+/// This is used efficiently internally to avoid copying maps.
+class GoRouterStateData extends TpRouteData {
+  final GoRouterState state;
+
+  const GoRouterStateData(this.state);
+
+  @override
+  String? get routeName => state.name;
+
+  @override
+  String get fullPath => state.uri.toString();
+
+  @override
+  Uri get uri => state.uri;
+
+  @override
+  Map<String, String> get pathParams => state.pathParameters;
+
+  @override
+  Map<String, String> get queryParams => state.uri.queryParameters;
+
+  @override
+  Object? get extra => state.extra;
+
+  @override
+  Object? get error => state.error;
+
+  @override
+  LocalKey? get pageKey => state.pageKey;
 }

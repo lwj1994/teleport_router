@@ -1,3 +1,6 @@
+## 0.6.1
+* **Refactor**: Major internal restructuring. Split monolithic generator logic into `RouteWriter` and `RouteData` models for better maintainability and extensibility.
+
 ## 0.6.0
 * **Fix**: Removed redundant `TpRouteObserver` generation (now handled by `TpNavKey` logic).
 * **Fix**: Cleaned up unused imports in generated code.

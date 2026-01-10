@@ -466,7 +466,7 @@ packages:
       path: "../tp_router_generator"
       relative: true
     source: path
-    version: "0.6.0"
+    version: "0.6.1"
   typed_data:
     dependency: transitive
     description:

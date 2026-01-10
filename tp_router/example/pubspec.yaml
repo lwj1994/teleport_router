@@ -1,6 +1,7 @@
 name: example
 description: Example app demonstrating tp_router usage.
 version: 1.0.0
+publish_to: none
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

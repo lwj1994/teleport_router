@@ -35,7 +35,7 @@ class _HomePageState extends State<HomePage> {
               if (_result != null)
                 Container(
                   padding: const EdgeInsets.all(12),
-                  color: Colors.amber.withOpacity(0.2),
+                  color: Colors.amber.withValues(alpha: 0.2),
                   child: Text('Result from Details: $_result'),
                 ),
               const SizedBox(height: 20),

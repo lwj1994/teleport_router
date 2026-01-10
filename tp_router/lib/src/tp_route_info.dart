@@ -150,52 +150,24 @@ class TpRouteInfo extends TpRouteBase {
           state: state,
           data: data,
           child: child,
-          transitionBuilder: transition,
-          fullscreenDialog: fullscreenDialog,
-          opaque: opaque,
-          barrierDismissible: barrierDismissible,
-          barrierColor: barrierColor,
-          barrierLabel: barrierLabel,
-          maintainState: maintainState,
-          transitionDuration: transitionDuration,
-          reverseTransitionDuration: reverseTransitionDuration,
-          type: type,
-          pageBuilder: pageBuilder,
-          config: config,
+          pageConfig: TpPageConfig(
+            pageBuilder: pageBuilder,
+            transitionBuilder: transition,
+            fullscreenDialog: fullscreenDialog,
+            opaque: opaque,
+            barrierDismissible: barrierDismissible,
+            barrierColor: barrierColor,
+            barrierLabel: barrierLabel,
+            maintainState: maintainState,
+            transitionDuration: transitionDuration,
+            reverseTransitionDuration: reverseTransitionDuration,
+            type: type,
+          ),
+          routerConfig: config,
         );
       },
     );
   }
-}
-
-/// Internal route data implementation for pageBuilder context.
-class _GoRouterStateRouteData extends TpRouteData {
-  @override
-  final String fullPath;
-
-  @override
-  final String? routeName;
-
-  @override
-  final Map<String, String> pathParams;
-
-  @override
-  final Map<String, String> queryParams;
-
-  @override
-  final LocalKey? pageKey;
-
-  @override
-  final dynamic extra;
-
-  const _GoRouterStateRouteData({
-    required this.fullPath,
-    required this.pathParams,
-    required this.queryParams,
-    required this.extra,
-    required this.routeName,
-    this.pageKey,
-  });
 }
 
 /// A shell route that wraps a child route with a shell UI.
@@ -269,18 +241,20 @@ class TpShellRouteInfo extends TpRouteBase {
           state: state,
           data: data,
           child: shellChild,
-          pageBuilder: pageBuilder,
-          transitionBuilder: const TpNoTransition(),
-          fullscreenDialog: fullscreenDialog,
-          opaque: opaque,
-          barrierDismissible: barrierDismissible,
-          barrierColor: barrierColor,
-          barrierLabel: barrierLabel,
-          maintainState: maintainState,
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
-          type: type,
-          config: config,
+          pageConfig: TpPageConfig(
+            pageBuilder: pageBuilder,
+            transitionBuilder: const TpNoTransition(),
+            fullscreenDialog: fullscreenDialog,
+            opaque: opaque,
+            barrierDismissible: barrierDismissible,
+            barrierColor: barrierColor,
+            barrierLabel: barrierLabel,
+            maintainState: maintainState,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+            type: type,
+          ),
+          routerConfig: config,
         );
       },
       routes: routes.map((r) => r.toGoRoute(config: config)).toList(),
@@ -398,18 +372,20 @@ class TpStatefulShellRouteInfo extends TpRouteBase {
           state: state,
           data: data,
           child: shellChild,
-          pageBuilder: pageBuilder,
-          transitionBuilder: const TpNoTransition(),
-          fullscreenDialog: fullscreenDialog,
-          opaque: opaque,
-          barrierDismissible: barrierDismissible,
-          barrierColor: barrierColor,
-          barrierLabel: barrierLabel,
-          maintainState: maintainState,
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
-          type: type,
-          config: config,
+          pageConfig: TpPageConfig(
+            pageBuilder: pageBuilder,
+            transitionBuilder: const TpNoTransition(),
+            fullscreenDialog: fullscreenDialog,
+            opaque: opaque,
+            barrierDismissible: barrierDismissible,
+            barrierColor: barrierColor,
+            barrierLabel: barrierLabel,
+            maintainState: maintainState,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+            type: type,
+          ),
+          routerConfig: config,
         );
       },
       branches: branches.asMap().entries.map((entry) {
@@ -458,15 +434,38 @@ class TpParamInfo {
 }
 
 TpRouteData _buildRouteData(GoRouterState state) {
-  final extraData = state.extra;
-  return _GoRouterStateRouteData(
-    fullPath: state.uri.toString(),
-    pathParams: state.pathParameters,
-    queryParams: state.uri.queryParameters,
-    extra: extraData,
-    routeName: state.name,
-    pageKey: state.pageKey,
-  );
+  return GoRouterStateData(state);
+}
+
+/// Configuration object for page creation.
+///
+/// Encapsulates all the settings required to build a [Page] from a route.
+class TpPageConfig {
+  final TpPageFactory? pageBuilder;
+  final TpTransitionsBuilder? transitionBuilder;
+  final bool fullscreenDialog;
+  final bool opaque;
+  final bool barrierDismissible;
+  final Color? barrierColor;
+  final String? barrierLabel;
+  final bool maintainState;
+  final Duration transitionDuration;
+  final Duration reverseTransitionDuration;
+  final TpPageType? type;
+
+  const TpPageConfig({
+    required this.fullscreenDialog,
+    required this.opaque,
+    required this.barrierDismissible,
+    required this.maintainState,
+    required this.transitionDuration,
+    required this.reverseTransitionDuration,
+    this.pageBuilder,
+    this.transitionBuilder,
+    this.barrierColor,
+    this.barrierLabel,
+    this.type,
+  });
 }
 
 Page<dynamic> _createTpPage({
@@ -474,50 +473,43 @@ Page<dynamic> _createTpPage({
   required GoRouterState state,
   required TpRouteData data,
   required Widget child,
-  required TpPageFactory? pageBuilder,
-  required TpTransitionsBuilder? transitionBuilder,
-  required bool fullscreenDialog,
-  required bool opaque,
-  required bool barrierDismissible,
-  required Color? barrierColor,
-  required String? barrierLabel,
-  required bool maintainState,
-  required Duration transitionDuration,
-  required Duration reverseTransitionDuration,
-  required TpPageType? type,
-  TpRouterConfig? config,
+  required TpPageConfig pageConfig,
+  TpRouterConfig? routerConfig,
 }) {
-  final effectivePageBuilder = pageBuilder ?? config?.defaultPageBuilder;
+  final effectivePageBuilder =
+      pageConfig.pageBuilder ?? routerConfig?.defaultPageBuilder;
   if (effectivePageBuilder != null) {
     return effectivePageBuilder.buildPage(context, data, child);
   }
 
   // Resolve transition defaults
-  final effectiveTransition = transitionBuilder ?? config?.defaultTransition;
+  final effectiveTransition =
+      pageConfig.transitionBuilder ?? routerConfig?.defaultTransition;
 
-  var tDur = transitionDuration;
-  var rDur = reverseTransitionDuration;
+  var tDur = pageConfig.transitionDuration;
+  var rDur = pageConfig.reverseTransitionDuration;
 
   // Only override durations if using default transition (i.e. no explicit transition on route)
-  if (transitionBuilder == null) {
-    if (config?.defaultTransitionDuration != null) {
-      tDur = config!.defaultTransitionDuration!;
+  if (pageConfig.transitionBuilder == null) {
+    if (routerConfig?.defaultTransitionDuration != null) {
+      tDur = routerConfig!.defaultTransitionDuration!;
     }
-    if (config?.defaultReverseTransitionDuration != null) {
-      rDur = config!.defaultReverseTransitionDuration!;
+    if (routerConfig?.defaultReverseTransitionDuration != null) {
+      rDur = routerConfig!.defaultReverseTransitionDuration!;
     }
   }
 
   // Determine effective page type
-  var effectiveType = type ?? config?.defaultPageType ?? TpPageType.auto;
+  var effectiveType =
+      pageConfig.type ?? routerConfig?.defaultPageType ?? TpPageType.auto;
 
   // Resolve 'auto' to specific type if native behavior is desired
   if (effectiveType == TpPageType.auto) {
     // Only resolve to native page if no custom transition/dialog settings
     if (effectiveTransition == null &&
-        opaque &&
-        barrierColor == null &&
-        !barrierDismissible) {
+        pageConfig.opaque &&
+        pageConfig.barrierColor == null &&
+        !pageConfig.barrierDismissible) {
       final platform = Theme.of(context).platform;
       effectiveType =
           (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS)
@@ -534,19 +526,19 @@ Page<dynamic> _createTpPage({
         name: state.name,
         arguments: data,
         key: state.pageKey,
-        fullscreenDialog: fullscreenDialog,
-        maintainState: maintainState,
+        fullscreenDialog: pageConfig.fullscreenDialog,
+        maintainState: pageConfig.maintainState,
       );
     case TpPageType.swipeBack:
       return CustomTransitionPage(
         arguments: data,
         name: state.name,
-        fullscreenDialog: fullscreenDialog,
+        fullscreenDialog: pageConfig.fullscreenDialog,
         opaque: false,
-        barrierColor: barrierColor,
-        barrierDismissible: barrierDismissible,
-        barrierLabel: barrierLabel,
-        maintainState: maintainState,
+        barrierColor: pageConfig.barrierColor,
+        barrierDismissible: pageConfig.barrierDismissible,
+        barrierLabel: pageConfig.barrierLabel,
+        maintainState: pageConfig.maintainState,
         key: state.pageKey,
         child: SwipeBackWrapper(
           child: child,
@@ -565,8 +557,8 @@ Page<dynamic> _createTpPage({
         name: state.name,
         arguments: data,
         key: state.pageKey,
-        fullscreenDialog: fullscreenDialog,
-        maintainState: maintainState,
+        fullscreenDialog: pageConfig.fullscreenDialog,
+        maintainState: pageConfig.maintainState,
       );
     default:
       // Fall through to CustomTransitionPage
@@ -576,12 +568,12 @@ Page<dynamic> _createTpPage({
   return CustomTransitionPage(
     arguments: data,
     name: state.name,
-    fullscreenDialog: fullscreenDialog,
-    opaque: opaque,
-    barrierColor: barrierColor,
-    barrierDismissible: barrierDismissible,
-    barrierLabel: barrierLabel,
-    maintainState: maintainState,
+    fullscreenDialog: pageConfig.fullscreenDialog,
+    opaque: pageConfig.opaque,
+    barrierColor: pageConfig.barrierColor,
+    barrierDismissible: pageConfig.barrierDismissible,
+    barrierLabel: pageConfig.barrierLabel,
+    maintainState: pageConfig.maintainState,
     key: state.pageKey,
     child: child,
     transitionDuration: tDur,

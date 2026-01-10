@@ -217,7 +217,7 @@ class _RouteStackPageCState extends State<RouteStackPageC> {
               if (_removedB)
                 Container(
                   padding: const EdgeInsets.all(12),
-                  color: Colors.green.withOpacity(0.2),
+                  color: Colors.green.withValues(alpha: 0.2),
                   child: Text(
                     _message,
                     textAlign: TextAlign.center,

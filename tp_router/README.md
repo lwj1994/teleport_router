@@ -89,6 +89,23 @@ TpRouter automatically injects `TpRouteObserver` into every navigator managed by
 
 Normal `go_router` doesn't easily support these because it manages URLs, not Flutter Route objects. TpRouter bridges this gap by watching the actual `Navigator` activities.
 
+### 4. Architecture Deep Dive
+TpRouter is designed as a compile-time abstraction layer over `go_router`.
+
+| Layer | Component | Role |
+|-------|-----------|------|
+| **User Code** | Annotations (`@TpRoute`) | Define the navigation structure and parameters declaratively. |
+| **Build System** | `tp_router_generator` | Analyzes code and generates type-safe `Route` classes. |
+| **Runtime** | `TpRouteData` | The common interface for all routes. It unifies parameters (path, query, extra) into a single API. |
+| **Core** | `TpRouter` | A singleton wrapper adjusting `go_router` configuration and managing global state. |
+| **Engine** | `go_router` | Handles URL parsing, deep linking, and low-level navigation. |
+
+**Data Flow:**
+1.  **Code Gen**: Annotated `UserPage(id)` becomes `UserRoute(id)`.
+2.  **Navigation**: Calling `UserRoute(id: 123).tp()` converts the object into a URL path (`/user/123`) and extra data.
+3.  **Routing**: `TpRouter` tells `go_router` to navigate.
+4.  **Reconstruction**: When the page builds, `TpRouter` uses `TpRouteData.of(context)` to parse the URL/Web State back into usable data.
+
 ---
 
 ## Installation
@@ -621,6 +638,13 @@ class SettingsPage extends StatelessWidget { ... }
 | `TpPageType.cupertino` | Force `CupertinoPage` (iOS-style with edge swipe). |
 | `TpPageType.swipeBack` | Full-screen swipe-to-dismiss gesture. |
 | `TpPageType.custom` | Use with `pageBuilder` for fully custom pages. |
+
+> **Note on `TpPageType.auto`**:
+> *   **Android**: Uses `ZoomPageTransitionsBuilder` (Android 10+) or standard slide up/fade.
+> *   **iOS**: Uses `CupertinoPageTransition` (slide from right with swipe-back).
+> *   **macOS/Linux/Windows**: Uses `ZoomPageTransitionsBuilder` or standard fade.
+>
+> This ensures your app feels native on every platform without manual configuration.
 
 ### Dialog & Modal Options
 
