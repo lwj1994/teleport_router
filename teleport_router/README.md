@@ -1,5 +1,9 @@
 # TeleportRouter
 
+> **Teleport — like in League of Legends. Click and you're there.** 
+> It's catchy, instant, and fits the theme of seamless navigation. just call `MyRoute().teleport()` and you're at your destination.
+
+
 [中文文档](README_zh.md)
 
 | Package | Version |

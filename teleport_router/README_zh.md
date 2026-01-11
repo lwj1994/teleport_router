@@ -1,5 +1,9 @@
 # Flutter 路由神器 TeleportRouter，这也太好用了吧！😭
 
+> **Teleport — 就像 LOL 里的传送。点一下，人就在那了。**
+> 这个名字又好记又贴切！它完美契合了游戏中那种“瞬移”到目的地的感觉。再也不用纠结复杂的路由跳转逻辑，只需要调用 `.teleport()`，你就已经到达了目的地。
+
+
 | Package | Version |
 |---------|---------|
 | [teleport_router](https://pub.dev/packages/teleport_router) | [![pub package](https://img.shields.io/pub/v/teleport_router.svg)](https://pub.dev/packages/teleport_router) |
