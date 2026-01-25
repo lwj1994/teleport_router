@@ -113,8 +113,15 @@ class TeleportRouterBuilder implements Builder {
             imports.addAll(shellData.extraImports);
           }
         }
-      } catch (e) {
-        // Skip files that can't be resolved
+      } on InvalidGenerationSourceError {
+        // Re-throw validation errors so they appear in build output
+        rethrow;
+      } catch (e, stackTrace) {
+        // Log warning for files that can't be resolved
+        log.warning(
+          'Failed to process ${input.path}: $e',
+          stackTrace,
+        );
         continue;
       }
     }
@@ -559,10 +566,11 @@ class TeleportRouterBuilder implements Builder {
       }
     }
 
-    // Validate Query parameters must have a default value
-    if (source == 'query' && !param.hasDefaultValue) {
+    // Validate Query parameters must have a default value (unless nullable)
+    // Nullable types have an implicit default value of null
+    if (source == 'query' && !param.hasDefaultValue && !isNullable) {
       throw InvalidGenerationSourceError(
-        'Query parameter "$paramName" in ${classElement.name} must have a default value in the constructor.',
+        'Query parameter "$paramName" in ${classElement.name} must have a default value in the constructor, or be nullable (e.g., int? instead of int).',
         element: param,
       );
     }
