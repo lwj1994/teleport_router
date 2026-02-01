@@ -620,7 +620,7 @@ class RouteWriter {
     String generateExtraCheck(String type) {
       if (!checkExtra) return '';
       return '''
-      final extraValue = settings.extra?['$urlName'];
+      final extraValue = settings['$urlName'];
       if (extraValue is $type) {
         return extraValue;
       }
