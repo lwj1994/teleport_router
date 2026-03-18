@@ -48,7 +48,7 @@ class UserPage extends StatelessWidget {
           title: const Text('User Details'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => TeleportRouter.instance.pop(),
+            onPressed: () => context.teleportRouter.pop(),
           ),
         ),
         body: Padding(

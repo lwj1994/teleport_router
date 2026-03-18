@@ -1,34 +1,18 @@
 import '../models/route_data.dart';
+import '../path_resolution.dart';
 
 class RouteWriter {
   static const _kRoutePrefix = 'teleport_router_';
 
   /// Generates the complete output file content.
   String generateFile(List<BaseRouteData> allRoutes, Set<String> imports) {
-    // Build a map of navigatorKey -> basePath for resolving relative paths
-    final shellBasePaths = <String, String>{};
-    for (final route in allRoutes) {
-      if (route is ShellRouteData) {
-        // If basePath is not specified, default to '/' for shells with children
-        shellBasePaths[route.navigatorKey] = route.basePath ?? '/';
-      }
-    }
+    final shellBasePaths = buildShellBasePaths(allRoutes);
 
     // Resolve relative paths in routes
     final resolvedRoutes = <BaseRouteData>[];
     for (final route in allRoutes) {
       if (route is RouteData) {
-        String resolvedPath = route.path;
-        if (!route.path.startsWith('/') && route.parentNavigatorKey != null) {
-          final basePath = shellBasePaths[route.parentNavigatorKey];
-          if (basePath != null) {
-            // Ensure basePath ends with / and path doesn't start with /
-            final cleanBasePath = basePath.endsWith('/')
-                ? basePath.substring(0, basePath.length - 1)
-                : basePath;
-            resolvedPath = '$cleanBasePath/${route.path}';
-          }
-        }
+        final resolvedPath = resolveRoutePath(route, shellBasePaths);
         // Create new RouteData with resolved path
         resolvedRoutes.add(RouteData(
           className: route.className,
@@ -596,8 +580,9 @@ class RouteWriter {
     final name = p.name;
     final urlName = p.urlName;
     final isRequired = p.isRequired;
+    final checkExtra = p.source != 'path' && p.source != 'query';
 
-    // Determine the source access method for string-based parameters
+    // Determine the source access method for URL-based parameters
     String stringSourceAccess;
     switch (p.source) {
       case 'path':
@@ -607,25 +592,15 @@ class RouteWriter {
         stringSourceAccess = "settings.queryParams['$urlName']";
         break;
       default:
-        // Default (extra) fallback
-        stringSourceAccess =
-            "settings.pathParams['$urlName'] ?? settings.queryParams['$urlName']";
+        stringSourceAccess = '';
     }
 
-    // Identify if we should check settings.extra for this parameter
-    // User logic: checkExtra if not path and not query
-    final checkExtra = p.source != 'path' && p.source != 'query';
+    String missingRequiredCode() =>
+        "throw ArgumentError('Missing required parameter: $name');";
 
-    // Helper to generate the extra check block
-    String generateExtraCheck(String type) {
-      if (!checkExtra) return '';
-      return '''
-      final extraValue = settings['$urlName'];
-      if (extraValue is $type) {
-        return extraValue;
-      }
-''';
-    }
+    String invalidValueCode(String type) => isRequired
+        ? "throw ArgumentError('Invalid $type value for: $name');"
+        : 'return null;';
 
     // Generates the parsing logic closure
     String generateParsingLogic(
@@ -633,18 +608,38 @@ class RouteWriter {
       String parseMethod, {
       bool isBool = false,
     }) {
-      final extraCheck = generateExtraCheck(type);
-      return '''      final $name = (() {
-${extraCheck.isNotEmpty ? '$extraCheck\n' : ''}        final raw = $stringSourceAccess;
+      if (checkExtra) {
+        return '''      final $name = (() {
+        final extraValue = settings.getExtra<Object?>('$urlName');
+        if (extraValue is $type) {
+          return extraValue;
+        }
+        final raw = extraValue is String ? extraValue : null;
         if (raw == null) {
-          ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
+          ${isRequired ? missingRequiredCode() : 'return null;'}
         }
         ${isBool ? '''final lower = raw.toLowerCase();
         if (lower == 'true' || lower == '1' || lower == 'yes') return true;
         if (lower == 'false' || lower == '0' || lower == 'no') return false;
-        ${isRequired ? "throw ArgumentError('Invalid bool value for: $name');" : "return null;"}''' : '''final parsed = $parseMethod(raw);
+        ${invalidValueCode(type)}''' : '''final parsed = $parseMethod(raw);
         if (parsed == null) {
-          ${isRequired ? "throw ArgumentError('Invalid $type value for: $name');" : "return null;"}
+          ${invalidValueCode(type)}
+        }
+        return parsed;'''}
+      })();''';
+      }
+
+      return '''      final $name = (() {
+        final raw = $stringSourceAccess;
+        if (raw == null) {
+          ${isRequired ? missingRequiredCode() : 'return null;'}
+        }
+        ${isBool ? '''final lower = raw.toLowerCase();
+        if (lower == 'true' || lower == '1' || lower == 'yes') return true;
+        if (lower == 'false' || lower == '0' || lower == 'no') return false;
+        ${invalidValueCode(type)}''' : '''final parsed = $parseMethod(raw);
+        if (parsed == null) {
+          ${invalidValueCode(type)}
         }
         return parsed;'''}
       })();''';
@@ -671,16 +666,13 @@ ${extraCheck.isNotEmpty ? '$extraCheck\n' : ''}        final raw = $stringSource
           return generateExtraExtraction(p);
         }
 
-        // String case: for extra source, settings[key] already handles all
-        // lookups internally, so no fallback needed.
         if (checkExtra) {
           return '''      final $name = (() {
-        // Try getting from extra/map first via operator []
-        final val = settings['$urlName'];
+        final val = settings.getExtra<Object?>('$urlName');
         if (val is String) {
           return val;
         }
-        ${isRequired ? "throw ArgumentError('Missing required parameter: $name');" : "return null;"}
+        ${isRequired ? missingRequiredCode() : 'return null;'}
       })();''';
         }
 
@@ -703,8 +695,8 @@ ${extraCheck.isNotEmpty ? '$extraCheck\n' : ''}        final raw = $stringSource
 
     return '''      final $name = (() {
         // Try getting from map first
-        final val = settings['$urlName'];
-        if (val is $type) return val;
+        final val = settings.getExtra<$type>('$urlName');
+        if (val != null) return val;
 
         // Try casting the whole extra object
         final asType = settings.getExtraAs<$type>();

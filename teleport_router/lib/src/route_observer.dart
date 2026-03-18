@@ -48,8 +48,12 @@ class TeleportRouteObserver extends NavigatorObserver {
 
   /// Check if a route should be tracked by this observer.
   ///
-  /// Only tracks routes with names starting with [kTeleportRoutePrefix].
+  /// Routes are tracked when they preserve [TeleportRouteData] in
+  /// [RouteSettings.arguments], or when they use a generated route name.
   bool _shouldTrackRoute(Route route) {
+    if (route.settings.arguments is TeleportRouteData) {
+      return true;
+    }
     final name = route.settings.name;
     return name != null && name.startsWith(kTeleportRoutePrefix);
   }
@@ -87,14 +91,7 @@ class TeleportRouteObserver extends NavigatorObserver {
     }
     _pendingRemovals.remove(route); // Cleanup if popped normally
 
-    // If the route revealed (previousRoute) is marked for removal, pop it.
-    if (previousRoute != null && _pendingRemovals.contains(previousRoute)) {
-      _pendingRemovals.remove(previousRoute);
-      // Schedule pop for next frame to avoid conflicting transitions
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        TeleportRouter.instance.pop();
-      });
-    }
+    _schedulePendingRemovalIfNeeded();
   }
 
   @override
@@ -105,6 +102,7 @@ class TeleportRouteObserver extends NavigatorObserver {
       _routeDataMap.remove(route);
     }
     _pendingRemovals.remove(route);
+    _schedulePendingRemovalIfNeeded();
   }
 
   @override
@@ -177,14 +175,14 @@ class TeleportRouteObserver extends NavigatorObserver {
   }
 
   void _addRouteToMap(Route route) {
-    final name = route.settings.name;
+    final name = _trackedRouteName(route);
     if (name != null) {
       _routesByName.putIfAbsent(name, () => []).add(route);
     }
   }
 
   void _removeRouteFromMap(Route route) {
-    final name = route.settings.name;
+    final name = _trackedRouteName(route);
     if (name != null) {
       _routesByName[name]?.remove(route);
       if (_routesByName[name]?.isEmpty == true) {
@@ -196,5 +194,33 @@ class TeleportRouteObserver extends NavigatorObserver {
   /// Try to extract TeleportRouteData from route settings arguments
   void _tryExtractRouteData(Route route) {
     _routeDataMap[route] = TeleportRouteData.fromRoute(route);
+  }
+
+  String? _trackedRouteName(Route route) {
+    final arguments = route.settings.arguments;
+    if (arguments is TeleportRouteData && arguments.routeName != null) {
+      return arguments.routeName;
+    }
+    return route.settings.name;
+  }
+
+  void _schedulePendingRemovalIfNeeded() {
+    if (_pendingRemovals.isEmpty || _allRoutes.isEmpty) {
+      return;
+    }
+
+    final topTrackedRoute = _allRoutes.last;
+    if (!_pendingRemovals.contains(topTrackedRoute)) {
+      return;
+    }
+
+    // Keep peeling overlays until the highest tracked pending route is gone.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentNavigator = navigator;
+      if (currentNavigator?.canPop() ?? false) {
+        currentNavigator!.pop();
+        WidgetsBinding.instance.scheduleFrame();
+      }
+    });
   }
 }

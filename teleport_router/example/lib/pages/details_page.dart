@@ -33,7 +33,7 @@ class DetailsPage extends StatelessWidget {
           title: Text('$title (L$level)'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => TeleportRouter.instance.pop(),
+            onPressed: () => context.teleportRouter.pop(),
           ),
         ),
         body: Center(
@@ -64,8 +64,10 @@ class DetailsPage extends StatelessWidget {
                   ),
                   ElevatedButton.icon(
                     onPressed: () {
-                      TeleportRouter.instance
-                          .pop(result: 'Result from Level $level');
+                      TeleportRouter.instance.pop(
+                        result: 'Result from Level $level',
+                        context: context,
+                      );
                     },
                     icon: const Icon(Icons.check),
                     label: const Text('Pop w/ Result'),
@@ -73,7 +75,7 @@ class DetailsPage extends StatelessWidget {
                   if (level > 1)
                     ElevatedButton.icon(
                       onPressed: () {
-                        TeleportRouter.instance.popToInitial();
+                        context.teleportRouter.popToInitial();
                       },
                       icon: const Icon(Icons.home),
                       label: const Text('Pop Until Root'),

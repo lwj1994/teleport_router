@@ -18,7 +18,7 @@ import 'package:teleport_router/src/route.dart';
 ///       key: data.pageKey,
 ///       child: child,
 ///       name: data.routeName,
-///       arguments: data.extra,
+///       arguments: data,
 ///     );
 ///   }
 /// }

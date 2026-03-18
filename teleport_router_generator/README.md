@@ -6,19 +6,20 @@ Code generator for [teleport_router](https://pub.dev/packages/teleport_router) -
 
 ## Overview
 
-`teleport_router_generator` processes `@TeleportRoute`, `@TeleportShellRoute`, and `@TeleportStatefulShellRoute` annotations to automatically generate type-safe routing code. It eliminates boilerplate and ensures compile-time safety for your navigation logic.
+`teleport_router_generator` processes `@TeleportRoute` and `@TeleportShellRoute` annotations to automatically generate type-safe routing code. When `@TeleportShellRoute(isIndexedStack: true)` is used, it emits the stateful shell routing configuration for you. It eliminates boilerplate and ensures compile-time safety for your navigation logic.
 
 ## Installation
 
-Add to your `dev_dependencies` in `pubspec.yaml`:
+Add the matching runtime packages and generator to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  teleport_router: any
+  teleport_router: ^0.8.5
+  teleport_router_annotation: ^0.8.5
 
 dev_dependencies:
-  build_runner: any
- teleport_router_generator: any
+  build_runner: 2.10.4
+  teleport_router_generator: ^0.8.5
 ```
 
 ## Usage
@@ -89,7 +90,7 @@ targets:
 - ✅ Generates type-safe route classes (e.g., `HomeRoute`, `UserRoute`)
 - ✅ Handles parameter extraction from path, query, and extra data
 - ✅ Supports custom transitions and global configuration
-- ✅ Supports shell routes (`TeleportShellRoute`, `TeleportStatefulShellRoute`)
+- ✅ Supports shell routes, including IndexedStack/stateful shell mode via `TeleportShellRoute(isIndexedStack: true)`
 - ✅ Compile-time validation of route parameters
 - ✅ Static reconstruction via `fromData` method
 - ✅ Class-based redirection and lifecycle guards

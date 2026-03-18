@@ -25,7 +25,7 @@ class DashboardOverviewPage extends StatelessWidget {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  TeleportRouter.instance.pop();
+                  context.teleportRouter.pop();
                 },
                 child: const Text('pop'),
               ),

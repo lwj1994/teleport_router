@@ -120,12 +120,12 @@ Add the following to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  teleport_router: ^0.5.1
-  teleport_router_annotation: ^0.5.0
+  teleport_router: ^0.8.5
+  teleport_router_annotation: ^0.8.5
 
 dev_dependencies:
-  build_runner: ^2.4.0
-  teleport_router_generator: ^0.5.0
+  build_runner: 2.10.4
+  teleport_router_generator: ^0.8.5
 ```
 
 Run the generator:
@@ -717,6 +717,11 @@ All available `@TeleportRoute` parameters:
 )
 class MyPage extends StatelessWidget { ... }
 ```
+
+When implementing a custom `TeleportPageFactory`, preserve `name: data.routeName`
+and `arguments: data` on the returned `Page`. Those values are what keep
+observer-based APIs like `popUntil`, `removeWhere`, and `currentRoute`
+working correctly.
 
 ### Full @TeleportShellRoute Reference
 

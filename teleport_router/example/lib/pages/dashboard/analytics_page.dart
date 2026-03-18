@@ -29,7 +29,7 @@ class AnalyticsPage extends StatelessWidget {
               Text('Charts and graphs go here'),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () => TeleportRouter.instance.pop(),
+                onPressed: () => context.teleportRouter.pop(),
                 child: Text('Back to Overview'),
               ),
               ElevatedButton(

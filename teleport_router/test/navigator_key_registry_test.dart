@@ -3,6 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:teleport_router/src/navigator_key_registry.dart';
 import 'package:teleport_router/teleport_router.dart';
 
+Future<void> _pumpFrames(WidgetTester tester, int count) async {
+  for (var i = 0; i < count; i++) {
+    await tester.pump();
+  }
+  await tester.pumpAndSettle();
+}
+
 void main() {
   group('TeleportNavigatorKeyRegistry', () {
     setUp(() {
@@ -207,6 +214,119 @@ void main() {
       router.pop();
       await tester.pumpAndSettle();
       expect(find.text('Home Page'), findsOneWidget);
+    });
+
+    testWidgets('removeWhere defers current-route pop to the next frame',
+        (tester) async {
+      final router = TeleportRouter(
+        routes: [homeRoute, pageARoute, pageBRoute],
+      );
+
+      await tester.pumpWidget(MaterialApp.router(
+        routerConfig: router.routerConfig,
+      ));
+      await tester.pumpAndSettle();
+
+      router.teleport(TeleportRouteData.fromPath('/page-a'));
+      await tester.pumpAndSettle();
+      router.teleport(TeleportRouteData.fromPath('/page-b'));
+      await tester.pumpAndSettle();
+
+      final count = TeleportRouter.instance.removeWhere(
+        (data) => data.fullPath == '/page-b',
+      );
+
+      expect(count, 1);
+      expect(
+        TeleportRouter.instance.getObserver().allRouteData.values.last.fullPath,
+        '/page-b',
+      );
+
+      await _pumpFrames(tester, 2);
+      expect(find.text('Page A'), findsOneWidget);
+      expect(find.text('Page B'), findsNothing);
+    });
+
+    testWidgets('removeWhere removes top tracked route under a dialog',
+        (tester) async {
+      final router = TeleportRouter(
+        routes: [homeRoute, pageARoute, pageBRoute],
+      );
+
+      await tester.pumpWidget(MaterialApp.router(
+        routerConfig: router.routerConfig,
+      ));
+      await tester.pumpAndSettle();
+
+      router.teleport(TeleportRouteData.fromPath('/page-a'));
+      await tester.pumpAndSettle();
+      router.teleport(TeleportRouteData.fromPath('/page-b'));
+      await tester.pumpAndSettle();
+
+      showDialog<void>(
+        context: router.navigatorKey.globalKey.currentContext!,
+        builder: (context) => const AlertDialog(
+          title: Text('Blocking Dialog'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final count = TeleportRouter.instance.removeWhere(
+        (data) => data.fullPath == '/page-b',
+      );
+
+      expect(count, 1);
+
+      await _pumpFrames(tester, 4);
+      expect(find.text('Blocking Dialog'), findsNothing);
+      expect(find.text('Page A'), findsOneWidget);
+      expect(find.text('Page B'), findsNothing);
+    });
+
+    testWidgets('removeWhere peels multiple dialogs above top tracked route',
+        (tester) async {
+      final router = TeleportRouter(
+        routes: [homeRoute, pageARoute, pageBRoute],
+      );
+
+      await tester.pumpWidget(MaterialApp.router(
+        routerConfig: router.routerConfig,
+      ));
+      await tester.pumpAndSettle();
+
+      router.teleport(TeleportRouteData.fromPath('/page-a'));
+      await tester.pumpAndSettle();
+      router.teleport(TeleportRouteData.fromPath('/page-b'));
+      await tester.pumpAndSettle();
+
+      final rootContext = router.navigatorKey.globalKey.currentContext!;
+      showDialog<void>(
+        context: rootContext,
+        builder: (context) => const AlertDialog(
+          title: Text('First Dialog'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      showDialog<void>(
+        context: rootContext,
+        builder: (context) => const AlertDialog(
+          title: Text('Second Dialog'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final count = TeleportRouter.instance.removeWhere(
+        (data) => data.fullPath == '/page-b',
+      );
+
+      expect(count, 1);
+
+      await _pumpFrames(tester, 6);
+      expect(find.text('First Dialog'), findsNothing);
+      expect(find.text('Second Dialog'), findsNothing);
+      expect(find.text('Page A'), findsOneWidget);
+      expect(find.text('Page B'), findsNothing);
     });
   });
 

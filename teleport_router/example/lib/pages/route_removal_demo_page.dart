@@ -25,7 +25,7 @@ class RouteRemovalDemoPage extends StatelessWidget {
           title: const Text('Route Removal Demo'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => TeleportRouter.instance.pop(),
+            onPressed: () => context.teleportRouter.pop(),
           ),
         ),
         body: Padding(
@@ -262,7 +262,7 @@ class _RouteStackPageCState extends State<RouteStackPageC> {
               OutlinedButton.icon(
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Go Back (Test the Stack)'),
-                onPressed: () => TeleportRouter.instance.pop(),
+                onPressed: () => context.teleportRouter.pop(),
               ),
               const Divider(height: 32),
               const Text(

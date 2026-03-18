@@ -21,7 +21,9 @@ class TeleportRouterContext {
 
   /// Pop the current route from the navigation stack.
   void pop() {
-    TeleportRouter.instance.pop();
+    TeleportRouter.instance.pop(
+      context: context,
+    );
   }
 
   /// Pop until the specified route is found.

@@ -81,7 +81,7 @@ UserRoute(id: 42, name: 'Alice').teleport(context);
 ### Nested Routes
 
 *   **auto_router**: Uses `AutoTabsRouter` or similar specific implementations.
-*   **teleport_router**: Uses standard `@TeleportShellRoute` or `@TeleportStatefulShellRoute`. The generated `navigationShell` provides a familiar API for switching branches.
+*   **teleport_router**: Uses standard `@TeleportShellRoute`; set `isIndexedStack: true` when you want stateful shell behavior. The generated `navigationShell` provides a familiar API for switching branches.
 
 ---
 

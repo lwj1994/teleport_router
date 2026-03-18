@@ -92,7 +92,7 @@ FutureOr<TeleportRouteData?> profileRedirect(BuildContext context, ProfileRoute 
 ### 嵌套路由 (Shell Route)
 
 *   **auto_router**: 使用 `AutoTabsRouter` 等特殊组件。
-*   **teleport_router**: 使用标准的 `@TeleportShellRoute` 或 `@TeleportStatefulShellRoute`，生成后直接使用 `navigationShell` 控制。
+*   **teleport_router**: 使用标准的 `@TeleportShellRoute`，如果需要 stateful shell / IndexedStack 行为，设置 `isIndexedStack: true` 即可，生成后直接使用 `navigationShell` 控制。
 
 ---
 

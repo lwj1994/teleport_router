@@ -44,7 +44,7 @@ TeleportRouter 会自动给每个 `TeleportNavKey` 注入特工 `TeleportRouteOb
 - `popUntil` (一直退到某页)
 - `removeWhere` (把某页偷偷删掉)
 - `popToInitial` (一键回到首页)
-这些操作在原生 `go_router` 里可是很难搞的哦！TeleportRouter 帮你做到了！�
+这些操作在原生 `go_router` 里可是很难搞的哦！TeleportRouter 帮你做到了！
 
 ---
 
@@ -54,12 +54,12 @@ TeleportRouter 会自动给每个 `TeleportNavKey` 注入特工 `TeleportRouteOb
 
 ```yaml
 dependencies:
-  teleport_router: ^0.5.1
-  teleport_router_annotation: ^0.5.0
+  teleport_router: ^0.8.5
+  teleport_router_annotation: ^0.8.5
 
 dev_dependencies:
-  build_runner: ^2.4.0
-  teleport_router_generator: ^0.5.0
+  build_runner: 2.10.4
+  teleport_router_generator: ^0.8.5
 ```
 
 运行小助手：
@@ -166,7 +166,7 @@ TeleportRouter.instance.pop();
 
 ---
 
-## � 传参神器
+## 传参神器
 
 不用解析 String，直接拿对象！
 
@@ -243,5 +243,5 @@ class MyDialogPage ...
 
 ---
 
-好啦，TeleportRouter 的精髓都在这里了！快去试试吧，真的能省下好多时间摸鱼！�
+好啦，TeleportRouter 的精髓都在这里了！快去试试吧，真的能省下好多时间摸鱼！
 如果有问题，欢迎提 Issue 哦！❤️
