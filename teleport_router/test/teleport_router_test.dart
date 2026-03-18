@@ -77,7 +77,6 @@ void main() {
       final router = TeleportRouter(
         routes: [homeRoute, userRoute],
         redirect: (context, state) {
-          print('Redirect check: ${state.fullPath}');
           if (state.fullPath == '/home') {
             return const MockRoute('/user/99');
           }
@@ -100,12 +99,7 @@ void main() {
           path: '/protected',
           builder: (data) => const Text('Protected Page'),
           redirect: (context, state) async {
-            // Mock auth check
-            bool authed = DateTime.now().millisecondsSinceEpoch % 2 == 0;
-            if (authed == false) {
-              return const MockRoute('/login');
-            }
-            return null;
+            return const MockRoute('/login');
           });
 
       final loginRoute = TeleportRouteInfo(
@@ -285,6 +279,131 @@ void main() {
       expect(find.text('Count: 1'), findsOneWidget);
     });
 
+    testWidgets('popToInitial targets the requested branch navigator',
+        (tester) async {
+      final branchKey = TeleportNavKey.value('main', branch: 0);
+      final branchHome = TeleportRouteInfo(
+        path: '/branch/home',
+        isInitial: true,
+        builder: (data) => const Text('Branch Home'),
+      );
+      final branchDetail = TeleportRouteInfo(
+        path: '/branch/detail',
+        builder: (data) => const Text('Branch Detail'),
+      );
+
+      final shellRoute = TeleportStatefulShellRouteInfo(
+        builder: (context, shell) => shell,
+        branches: [
+          [branchHome, branchDetail],
+        ],
+        branchNavigatorKeys: [branchKey],
+      );
+
+      final router = TeleportRouter(routes: [shellRoute]);
+      await tester.pumpWidget(MaterialApp.router(
+        routerConfig: router.routerConfig,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Branch Home'), findsOneWidget);
+
+      router.teleport(TeleportRouteData.fromPath('/branch/detail'));
+      await tester.pumpAndSettle();
+      expect(find.text('Branch Detail'), findsOneWidget);
+
+      TeleportRouter.instance.popToInitial(navigatorKey: branchKey);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Branch Home'), findsOneWidget);
+      expect(find.text('Branch Detail'), findsNothing);
+    });
+
+    testWidgets('removeWhere targets the requested branch navigator',
+        (tester) async {
+      final branchKey = TeleportNavKey.value('main', branch: 0);
+      final branchHome = TeleportRouteInfo(
+        path: '/remove/home',
+        isInitial: true,
+        builder: (data) => const Text('Remove Home'),
+      );
+      final branchDetail = TeleportRouteInfo(
+        path: '/remove/detail',
+        builder: (data) => const Text('Remove Detail'),
+      );
+
+      final shellRoute = TeleportStatefulShellRouteInfo(
+        builder: (context, shell) => shell,
+        branches: [
+          [branchHome, branchDetail],
+        ],
+        branchNavigatorKeys: [branchKey],
+      );
+
+      final router = TeleportRouter(routes: [shellRoute]);
+      await tester.pumpWidget(MaterialApp.router(
+        routerConfig: router.routerConfig,
+      ));
+      await tester.pumpAndSettle();
+
+      router.teleport(TeleportRouteData.fromPath('/remove/detail'));
+      await tester.pumpAndSettle();
+      expect(find.text('Remove Detail'), findsOneWidget);
+
+      final removed = TeleportRouter.instance.removeWhere(
+        (data) => data.fullPath == '/remove/detail',
+        navigatorKey: branchKey,
+      );
+
+      expect(removed, 1);
+
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Remove Home'), findsOneWidget);
+      expect(find.text('Remove Detail'), findsNothing);
+    });
+
+    testWidgets('root removeWhere does not match shell containers by leaf path',
+        (tester) async {
+      final branchKey = TeleportNavKey.value('main', branch: 0);
+      final branchHome = TeleportRouteInfo(
+        path: '/shell/home',
+        isInitial: true,
+        builder: (data) => const Text('Shell Home'),
+      );
+      final branchDetail = TeleportRouteInfo(
+        path: '/shell/detail',
+        builder: (data) => const Text('Shell Detail'),
+      );
+
+      final shellRoute = TeleportStatefulShellRouteInfo(
+        builder: (context, shell) => shell,
+        branches: [
+          [branchHome, branchDetail],
+        ],
+        branchNavigatorKeys: [branchKey],
+      );
+
+      final router = TeleportRouter(routes: [shellRoute]);
+      await tester.pumpWidget(MaterialApp.router(
+        routerConfig: router.routerConfig,
+      ));
+      await tester.pumpAndSettle();
+
+      router.teleport(TeleportRouteData.fromPath('/shell/detail'));
+      await tester.pumpAndSettle();
+      expect(find.text('Shell Detail'), findsOneWidget);
+
+      final removed = TeleportRouter.instance.removeWhere(
+        (data) => data.fullPath == '/shell/detail',
+      );
+
+      expect(removed, 0);
+      await tester.pumpAndSettle();
+      expect(find.text('Shell Detail'), findsOneWidget);
+    });
+
     testWidgets('supports nested ShellRoutes (Outer -> Inner -> Page)',
         (tester) async {
       // Leaf Page
@@ -324,7 +443,6 @@ void main() {
         routerConfig: router.routerConfig,
       ));
       await tester.pumpAndSettle();
-      debugDumpApp();
 
       // Navigate to leaf
       // Initial route matching logic might default to /leaf if it's the only one available via traversal
@@ -380,6 +498,14 @@ void main() {
       expect(find.text('Custom Page'), findsOneWidget);
       expect(SpyPageFactory.callCount, greaterThanOrEqualTo(1));
       expect(SpyPageFactory.lastKey, isNotNull);
+      expect(
+        TeleportRouter.instance
+            .getObserver()
+            .allRouteData
+            .values
+            .map((data) => data.fullPath),
+        contains('/custom'),
+      );
     });
   });
 }

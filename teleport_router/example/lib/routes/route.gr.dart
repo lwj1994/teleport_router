@@ -40,15 +40,16 @@ class AnalyticsRoute extends TeleportRouteData {
   static AnalyticsRoute fromData(TeleportRouteData data) {
     if (data is AnalyticsRoute) return data;
     final settings = data;
-    final title = (() {
-      // Try getting from extra/map first via operator []
-      final val = settings['title'];
-      if (val is String) {
-        return val;
-      }
-      return null;
-    })();
-    return AnalyticsRoute(title: title);
+      final title = (() {
+        final val = settings.getExtra<Object?>('title');
+        if (val is String) {
+          return val;
+        }
+        return null;
+      })();
+    return AnalyticsRoute(
+      title: title
+    );
   }
 
   /// The route info for this route.
@@ -67,8 +68,7 @@ class AnalyticsRoute extends TeleportRouteData {
     ],
     builder: (settings) {
       final title = (() {
-        // Try getting from extra/map first via operator []
-        final val = settings['title'];
+        final val = settings.getExtra<Object?>('title');
         if (val is String) {
           return val;
         }
@@ -89,9 +89,11 @@ class AnalyticsRoute extends TeleportRouteData {
 
   @override
   Map<String, dynamic> get extra => {
-        'title': title,
-      };
+    'title': title,
+  };
+
 }
+
 
 /// Route class for [DashboardOverviewPage].
 ///
@@ -132,7 +134,9 @@ class DashboardOverviewRoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/dashboard/overview';
+
 }
+
 
 /// Route class for [ReportsPage].
 ///
@@ -173,7 +177,9 @@ class ReportsRoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/dashboard/reports';
+
 }
+
 
 /// Route class for [DetailsPage].
 ///
@@ -199,26 +205,28 @@ class DetailsRoute extends TeleportRouteData {
   static DetailsRoute fromData(TeleportRouteData data) {
     if (data is DetailsRoute) return data;
     final settings = data;
-    final title = (() {
-      // Try getting from extra/map first via operator []
-      final val = settings['title'];
-      if (val is String) {
-        return val;
-      }
-      return null;
-    })();
-    final level = (() {
-      final raw = settings.queryParams['level'];
-      if (raw == null) {
+      final title = (() {
+        final val = settings.getExtra<Object?>('title');
+        if (val is String) {
+          return val;
+        }
         return null;
-      }
-      final parsed = int.tryParse(raw);
-      if (parsed == null) {
-        return null;
-      }
-      return parsed;
-    })();
-    return DetailsRoute(title: (title ?? 'Details'), level: (level ?? 1));
+      })();
+      final level = (() {
+        final raw = settings.queryParams['level'];
+        if (raw == null) {
+          return null;
+        }
+        final parsed = int.tryParse(raw);
+        if (parsed == null) {
+          return null;
+        }
+        return parsed;
+      })();
+    return DetailsRoute(
+      title: (title ?? 'Details'),
+      level: (level ?? 1)
+    );
   }
 
   /// The route info for this route.
@@ -244,8 +252,7 @@ class DetailsRoute extends TeleportRouteData {
     ],
     builder: (settings) {
       final title = (() {
-        // Try getting from extra/map first via operator []
-        final val = settings['title'];
+        final val = settings.getExtra<Object?>('title');
         if (val is String) {
           return val;
         }
@@ -283,9 +290,11 @@ class DetailsRoute extends TeleportRouteData {
 
   @override
   Map<String, dynamic> get extra => {
-        'title': title,
-      };
+    'title': title,
+  };
+
 }
+
 
 /// Route class for [LoginPage].
 ///
@@ -326,7 +335,9 @@ class LoginRoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/login';
+
 }
+
 
 /// Route class for [HomePage].
 ///
@@ -367,15 +378,16 @@ class HomeRoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/';
+
 }
 
+
 class MainShellRoute {
+
   static final navigatorKey = MainNavKey();
 
-  static final TeleportStatefulShellRouteInfo routeInfo =
-      TeleportStatefulShellRouteInfo(
-    builder: (context, navigationShell) =>
-        MainShellPage(navigationShell: navigationShell),
+  static final TeleportStatefulShellRouteInfo routeInfo = TeleportStatefulShellRouteInfo(
+    builder: (context, navigationShell) => MainShellPage(navigationShell: navigationShell),
     branches: [
       [
         DetailsRoute.routeInfo,
@@ -393,16 +405,13 @@ class MainShellRoute {
         ReportsRoute.routeInfo,
       ],
     ],
-    branchNavigatorKeys: [
-      MainHomeNavKey(),
-      MainSettingNavKey(),
-      MainDashBoradNavKey(),
-    ],
+    branchNavigatorKeys: [MainHomeNavKey(), MainSettingNavKey(), MainDashBoradNavKey(), ],
     observersBuilder: () => [
       AObserver(),
     ],
   );
 }
+
 
 /// Route class for [SettingsPage].
 ///
@@ -443,7 +452,9 @@ class SettingsRoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/settings';
+
 }
+
 
 /// Route class for [MemoryDetailPage].
 ///
@@ -457,8 +468,7 @@ class MemoryDetailRoute extends TeleportRouteData {
 
   const MemoryDetailRoute({
     required this.memory2,
-    this.memory =
-        const MemoryDetail(id: 'internal', content: 'Internal Default'),
+    this.memory = const MemoryDetail(id: 'internal', content: 'Internal Default'),
   });
 
   @override
@@ -470,32 +480,32 @@ class MemoryDetailRoute extends TeleportRouteData {
   static MemoryDetailRoute fromData(TeleportRouteData data) {
     if (data is MemoryDetailRoute) return data;
     final settings = data;
-    final memory2 = (() {
-      // Try getting from map first
-      final val = settings['memory2'];
-      if (val is MemoryDetail) return val;
+      final memory2 = (() {
+        // Try getting from map first
+        final val = settings.getExtra<MemoryDetail>('memory2');
+        if (val != null) return val;
 
-      // Try casting the whole extra object
-      final asType = settings.getExtraAs<MemoryDetail>();
-      if (asType != null) return asType;
+        // Try casting the whole extra object
+        final asType = settings.getExtraAs<MemoryDetail>();
+        if (asType != null) return asType;
 
-      throw ArgumentError('Missing required parameter: memory2');
-    })();
-    final memory = (() {
-      // Try getting from map first
-      final val = settings['memory'];
-      if (val is MemoryDetail) return val;
+        throw ArgumentError('Missing required parameter: memory2');
+      })();
+      final memory = (() {
+        // Try getting from map first
+        final val = settings.getExtra<MemoryDetail>('memory');
+        if (val != null) return val;
 
-      // Try casting the whole extra object
-      final asType = settings.getExtraAs<MemoryDetail>();
-      if (asType != null) return asType;
+        // Try casting the whole extra object
+        final asType = settings.getExtraAs<MemoryDetail>();
+        if (asType != null) return asType;
 
-      return null;
-    })();
+        return null;
+      })();
     return MemoryDetailRoute(
-        memory2: memory2,
-        memory: (memory ??
-            const MemoryDetail(id: 'internal', content: 'Internal Default')));
+      memory2: memory2,
+      memory: (memory ?? const MemoryDetail(id: 'internal', content: 'Internal Default'))
+    );
   }
 
   /// The route info for this route.
@@ -522,8 +532,8 @@ class MemoryDetailRoute extends TeleportRouteData {
     builder: (settings) {
       final memory2 = (() {
         // Try getting from map first
-        final val = settings['memory2'];
-        if (val is MemoryDetail) return val;
+        final val = settings.getExtra<MemoryDetail>('memory2');
+        if (val != null) return val;
 
         // Try casting the whole extra object
         final asType = settings.getExtraAs<MemoryDetail>();
@@ -533,8 +543,8 @@ class MemoryDetailRoute extends TeleportRouteData {
       })();
       final memory = (() {
         // Try getting from map first
-        final val = settings['memory'];
-        if (val is MemoryDetail) return val;
+        final val = settings.getExtra<MemoryDetail>('memory');
+        if (val != null) return val;
 
         // Try casting the whole extra object
         final asType = settings.getExtraAs<MemoryDetail>();
@@ -542,10 +552,7 @@ class MemoryDetailRoute extends TeleportRouteData {
 
         return null;
       })();
-      return MemoryDetailPage(
-          memory2: memory2,
-          memory: (memory ??
-              const MemoryDetail(id: 'internal', content: 'Internal Default')));
+      return MemoryDetailPage(memory2: memory2, memory: (memory ?? const MemoryDetail(id: 'internal', content: 'Internal Default')));
     },
   );
 
@@ -560,10 +567,12 @@ class MemoryDetailRoute extends TeleportRouteData {
 
   @override
   Map<String, dynamic> get extra => {
-        'memory2': memory2,
-        'memory': memory,
-      };
+    'memory2': memory2,
+    'memory': memory,
+  };
+
 }
+
 
 /// Route class for [ProtectedPage].
 ///
@@ -608,7 +617,9 @@ class ProtectedRoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/protected';
+
 }
+
 
 /// Route class for [RouteRemovalDemoPage].
 ///
@@ -649,7 +660,9 @@ class RouteRemovalDemoRoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/route-removal-demo';
+
 }
+
 
 /// Route class for [RouteStackPageA].
 ///
@@ -690,7 +703,9 @@ class RouteStackPageARoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/route-stack/a';
+
 }
+
 
 /// Route class for [RouteStackPageB].
 ///
@@ -731,7 +746,9 @@ class RouteStackPageBRoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/route-stack/b';
+
 }
+
 
 /// Route class for [RouteStackPageC].
 ///
@@ -772,7 +789,9 @@ class RouteStackPageCRoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/route-stack/c';
+
 }
+
 
 /// Route class for [UserPage].
 ///
@@ -800,30 +819,34 @@ class UserRoute extends TeleportRouteData {
   static UserRoute fromData(TeleportRouteData data) {
     if (data is UserRoute) return data;
     final settings = data;
-    final id = (() {
-      final raw = settings.pathParams['id'];
-      if (raw == null) {
-        throw ArgumentError('Missing required parameter: id');
-      }
-      final parsed = int.tryParse(raw);
-      if (parsed == null) {
-        throw ArgumentError('Invalid int value for: id');
-      }
-      return parsed;
-    })();
-    final name = settings.queryParams['name'];
-    final age = (() {
-      final raw = settings.queryParams['age'];
-      if (raw == null) {
-        return null;
-      }
-      final parsed = int.tryParse(raw);
-      if (parsed == null) {
-        return null;
-      }
-      return parsed;
-    })();
-    return UserRoute(id: id, name: (name ?? ''), age: (age ?? 0));
+      final id = (() {
+        final raw = settings.pathParams['id'];
+        if (raw == null) {
+          throw ArgumentError('Missing required parameter: id');
+        }
+        final parsed = int.tryParse(raw);
+        if (parsed == null) {
+          throw ArgumentError('Invalid int value for: id');
+        }
+        return parsed;
+      })();
+      final name = settings.queryParams['name'];
+      final age = (() {
+        final raw = settings.queryParams['age'];
+        if (raw == null) {
+          return null;
+        }
+        final parsed = int.tryParse(raw);
+        if (parsed == null) {
+          return null;
+        }
+        return parsed;
+      })();
+    return UserRoute(
+      id: id,
+      name: (name ?? ''),
+      age: (age ?? 0)
+    );
   }
 
   /// The route info for this route.
@@ -895,7 +918,9 @@ class UserRoute extends TeleportRouteData {
 
   @override
   String get pathPattern => '/user/:id';
+
 }
+
 
 /// All generated routes in the application.
 ///

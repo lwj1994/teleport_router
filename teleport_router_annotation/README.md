@@ -7,7 +7,6 @@ This package defines the annotations used to configure routes, shell routes, and
 ## Annotations
 
 *   `@TeleportRoute`: Define a route.
-*   `@TeleportShellRoute`: Define a shell route (wrapper).
-*   `@TeleportStatefulShellRoute`: Define a stateful shell route (e.g. IndexedStack).
+*   `@TeleportShellRoute`: Define a shell route, including IndexedStack/stateful shell mode via `isIndexedStack: true`.
 *   `@Path`: Explicitly map a constructor parameter to a path parameter.
 *   `@Query`: Explicitly map a constructor parameter to a query parameter.

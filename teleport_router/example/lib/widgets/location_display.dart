@@ -18,17 +18,24 @@ class LocationDisplay extends StatefulWidget {
 }
 
 class _LocationDisplayState extends State<LocationDisplay> {
+  bool _isListening = false;
+
   @override
   void initState() {
     super.initState();
-    TeleportRouter.instance.routerConfig.routerDelegate
-        .addListener(_onRouteChanged);
+    if (TeleportRouter.isInitialized) {
+      TeleportRouter.instance.routerConfig.routerDelegate
+          .addListener(_onRouteChanged);
+      _isListening = true;
+    }
   }
 
   @override
   void dispose() {
-    TeleportRouter.instance.routerConfig.routerDelegate
-        .removeListener(_onRouteChanged);
+    if (_isListening && TeleportRouter.isInitialized) {
+      TeleportRouter.instance.routerConfig.routerDelegate
+          .removeListener(_onRouteChanged);
+    }
     super.dispose();
   }
 
@@ -38,6 +45,10 @@ class _LocationDisplayState extends State<LocationDisplay> {
 
   @override
   Widget build(BuildContext context) {
+    if (!TeleportRouter.isInitialized) {
+      return widget.child;
+    }
+
     return Stack(
       children: [
         widget.child,

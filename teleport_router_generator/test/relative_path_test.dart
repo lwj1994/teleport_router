@@ -170,6 +170,104 @@ void main() {
       expect(output, contains("path: '/main/dashboard/overview'"));
       expect(output, contains("String get pathPattern => 'overview'"));
     });
+
+    test('inherits parent basePath when nested shell omits its own basePath',
+        () {
+      final parentShell = ShellRouteData(
+        className: 'MainShell',
+        routeClassName: 'MainShellRoute',
+        navigatorKey: 'MainNavKey',
+        basePath: '/main',
+        isIndexedStack: false,
+      );
+
+      final childShell = ShellRouteData(
+        className: 'DashboardShell',
+        routeClassName: 'DashboardShellRoute',
+        navigatorKey: 'DashboardNavKey',
+        parentNavigatorKey: 'MainNavKey',
+        isIndexedStack: false,
+      );
+
+      final route = RouteData(
+        className: 'OverviewPage',
+        routeClassName: 'OverviewRoute',
+        path: 'overview',
+        originalPath: 'overview',
+        parentNavigatorKey: 'DashboardNavKey',
+        isInitial: false,
+        params: [],
+      );
+
+      final allRoutes = [parentShell, childShell, route];
+      final output = writer.generateFile(allRoutes, {});
+
+      expect(output, contains("path: '/main/overview'"));
+      expect(output, contains("String get pathPattern => 'overview'"));
+    });
+
+    test('resolves nested shell relative basePath against parent shell', () {
+      final parentShell = ShellRouteData(
+        className: 'MainShell',
+        routeClassName: 'MainShellRoute',
+        navigatorKey: 'MainNavKey',
+        basePath: '/main',
+        isIndexedStack: true,
+        branchKeys: ['HomeNavKey'],
+      );
+
+      final childShell = ShellRouteData(
+        className: 'DashboardShell',
+        routeClassName: 'DashboardShellRoute',
+        navigatorKey: 'DashboardNavKey',
+        parentNavigatorKey: 'HomeNavKey',
+        basePath: 'dashboard',
+        isIndexedStack: false,
+      );
+
+      final route = RouteData(
+        className: 'ReportsPage',
+        routeClassName: 'ReportsRoute',
+        path: 'reports',
+        originalPath: 'reports',
+        parentNavigatorKey: 'DashboardNavKey',
+        isInitial: false,
+        params: [],
+      );
+
+      final allRoutes = [parentShell, childShell, route];
+      final output = writer.generateFile(allRoutes, {});
+
+      expect(output, contains("path: '/main/dashboard/reports'"));
+      expect(output, contains("String get pathPattern => 'reports'"));
+    });
+
+    test('resolves relative paths for indexed stack branch keys', () {
+      final shell = ShellRouteData(
+        className: 'MainShell',
+        routeClassName: 'MainShellRoute',
+        navigatorKey: 'MainNavKey',
+        basePath: '/main',
+        isIndexedStack: true,
+        branchKeys: ['HomeNavKey', 'SettingsNavKey'],
+      );
+
+      final route = RouteData(
+        className: 'DetailsPage',
+        routeClassName: 'DetailsRoute',
+        path: 'details',
+        originalPath: 'details',
+        parentNavigatorKey: 'HomeNavKey',
+        isInitial: false,
+        params: [],
+      );
+
+      final allRoutes = [shell, route];
+      final output = writer.generateFile(allRoutes, {});
+
+      expect(output, contains("path: '/main/details'"));
+      expect(output, contains("String get pathPattern => 'details'"));
+    });
   });
 
   group('Path Pattern Generation', () {

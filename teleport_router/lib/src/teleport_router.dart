@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/widgets.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:teleport_router_annotation/teleport_router_annotation.dart';
 import 'navigator_key_registry.dart';
@@ -340,10 +340,20 @@ class TeleportRouter {
   }
 
   /// Pop the current route from the navigation stack.
+  ///
+  /// When [navigatorKey] or [context] is provided, the pop is scoped to that
+  /// specific navigator instead of the root router.
   void pop<T extends Object?>({
     T? result,
+    TeleportNavKey? navigatorKey,
+    BuildContext? context,
   }) {
-    if (canPop) {
+    final targetNavigator = context != null || navigatorKey != null
+        ? _getNavigator(navigatorKey: navigatorKey, context: context)
+        : null;
+    final targetCanPop = targetNavigator?.canPop() ?? _goRouter.canPop();
+
+    if (targetCanPop) {
       if (result != null) {
         // Format result value for logging
         try {
@@ -364,7 +374,11 @@ class TeleportRouter {
       } else {
         LogUtil.navigation('pop');
       }
-      _goRouter.pop<T>(result);
+      if (targetNavigator != null) {
+        targetNavigator.pop<T>(result);
+      } else {
+        _goRouter.pop<T>(result);
+      }
     } else {
       LogUtil.warning('Cannot pop: already at root route');
     }
@@ -426,7 +440,10 @@ class TeleportRouter {
         return; // Reached the first route, stop popping to avoid emptying stack
       }
 
-      pop();
+      pop(
+        navigatorKey: navigatorKey,
+        context: context,
+      );
     }
   }
 
@@ -473,26 +490,46 @@ class TeleportRouter {
     final observer = _findObserverInNavigator(_getNavigator(
       navigatorKey: navigatorKey,
     ));
+    final isRootNavigator = navigatorKey == null;
 
     final routesToRemove = <Route>[];
     for (final route in observer.allRoutes) {
+      if (route.isFirst) {
+        continue;
+      }
       final data = observer.getRouteData(route);
-      if (data != null && predicate(data)) {
+      if (data == null) {
+        continue;
+      }
+      if (isRootNavigator && data.routeName == null) {
+        continue;
+      }
+      if (predicate(data)) {
         routesToRemove.add(route);
       }
     }
 
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      for (final route in routesToRemove) {
-        if (route.isCurrent) {
-          // If current, just pop
-          pop();
-        } else {
-          // If not current, mark for removal so it gets popped when revealed
-          observer.markRouteForRemoval(route);
-        }
+    final currentTrackedRoute =
+        observer.allRoutes.isNotEmpty ? observer.allRoutes.last : null;
+    var shouldPopCurrentRoute = false;
+
+    for (final route in routesToRemove) {
+      observer.markRouteForRemoval(route);
+      final isTopTrackedRoute =
+          currentTrackedRoute != null && identical(route, currentTrackedRoute);
+      if (route.isCurrent || isTopTrackedRoute) {
+        shouldPopCurrentRoute = true;
       }
-    });
+    }
+
+    if (shouldPopCurrentRoute) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        pop(
+          navigatorKey: navigatorKey,
+        );
+      });
+      SchedulerBinding.instance.scheduleFrame();
+    }
 
     return routesToRemove.length;
   }

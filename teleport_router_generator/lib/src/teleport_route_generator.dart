@@ -5,13 +5,18 @@ import 'package:glob/glob.dart';
 import 'package:source_gen/source_gen.dart';
 
 import 'models/route_data.dart';
+import 'path_resolution.dart';
 import 'writers/route_writer.dart';
 
 /// Code generator that scans Dart files for teleport_router annotations and generates routing code.
 ///
-/// This builder implements the [Builder] interface from build_runner and is responsible
-/// for generating type-safe routing code based on `@TeleportRoute`, `@TeleportShellRoute`, and
-/// `@TeleportStatefulShellRoute` annotations found in your Flutter application.
+/// This builder implements the [Builder] interface from build_runner and is
+/// responsible for generating type-safe routing code based on
+/// `@TeleportRoute` and `@TeleportShellRoute` annotations found in your
+/// Flutter application.
+///
+/// When a shell route uses `isIndexedStack: true`, the generated output uses
+/// stateful shell route info to preserve branch state.
 ///
 /// ## How It Works
 ///
@@ -126,6 +131,8 @@ class TeleportRouterBuilder implements Builder {
       }
     }
 
+    _validateIndexedStackBranches(allRoutes);
+
     // Validate duplicate paths
     _validateDuplicatePaths(allRoutes);
 
@@ -137,11 +144,12 @@ class TeleportRouterBuilder implements Builder {
   }
 
   void _validateDuplicatePaths(List<BaseRouteData> routes) {
+    final shellBasePaths = buildShellBasePaths(routes);
     final pathMap = <String, String>{}; // Path -> RouteClassName
 
     for (final route in routes) {
       if (route is RouteData) {
-        final path = route.path;
+        final path = resolveRoutePath(route, shellBasePaths);
         // Ignore checking parameters inside path logic for strict duplicates for now,
         // just exact string match.
         if (pathMap.containsKey(path)) {
@@ -151,6 +159,28 @@ class TeleportRouterBuilder implements Builder {
         }
         pathMap[path] = route.routeClassName;
       }
+    }
+  }
+
+  void _validateIndexedStackBranches(List<BaseRouteData> routes) {
+    for (final route in routes) {
+      if (route is! ShellRouteData) {
+        continue;
+      }
+
+      final missingBranchKeys =
+          findMissingIndexedStackBranchKeys(route, routes);
+      if (missingBranchKeys.isEmpty) {
+        continue;
+      }
+
+      final missingKeysLabel =
+          missingBranchKeys.map((branchKey) => '"$branchKey"').join(', ');
+      throw InvalidGenerationSourceError(
+        'Stateful shell "${route.routeClassName}" declares branchKeys '
+        '$missingKeysLabel without any descendant routes. '
+        'Each branchKey must own at least one child route or nested shell.',
+      );
     }
   }
 

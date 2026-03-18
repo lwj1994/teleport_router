@@ -24,11 +24,12 @@ import 'teleport_route_generator.dart';
 /// ## Generated Output
 ///
 /// The builder scans all Dart files in the build target for classes annotated
-/// with `@TeleportRoute`, `@TeleportShellRoute`, or `@TeleportStatefulShellRoute`, then generates:
+/// with `@TeleportRoute` or `@TeleportShellRoute`, then generates:
 ///
 /// - Type-safe route classes for navigation (e.g., `HomeRoute`, `UserRoute`)
 /// - Route data extraction from path parameters, query parameters, and extra data
-/// - Shell route configurations for nested navigation
+/// - Shell route configurations for nested navigation, including stateful shell
+///   output when `isIndexedStack: true`
 ///
 /// Returns a [TeleportRouterBuilder] instance configured with the specified options.
 Builder teleportRouterBuilder(BuilderOptions options) {

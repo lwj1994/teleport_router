@@ -179,5 +179,81 @@ void main() {
       expect(output, contains('      tab: tab'));
       expect(output, contains('    );'));
     });
+
+    test('extra primitive params read only from extra data', () {
+      final route = RouteData(
+        className: 'DetailsPage',
+        routeClassName: 'DetailsRoute',
+        path: '/details',
+        originalPath: '/details',
+        isInitial: false,
+        params: [
+          ParamData(
+            name: 'title',
+            urlName: 'title',
+            type: 'String',
+            baseType: 'String',
+            isRequired: true,
+            isNullable: false,
+            isNamed: true,
+            source: 'extra',
+          ),
+          ParamData(
+            name: 'level',
+            urlName: 'level',
+            type: 'int?',
+            baseType: 'int',
+            isRequired: false,
+            isNullable: true,
+            isNamed: true,
+            source: 'extra',
+          ),
+        ],
+      );
+
+      final output = writer.generateFile([route], {});
+
+      expect(output, contains("settings.getExtra<Object?>('title')"));
+      expect(output, contains("settings.getExtra<Object?>('level')"));
+      expect(output, isNot(contains("settings['title']")));
+      expect(output, isNot(contains("settings['level']")));
+      expect(
+          output,
+          isNot(contains(
+              "pathParams['title'] ?? settings.queryParams['title']")));
+      expect(
+          output,
+          isNot(contains(
+              "pathParams['level'] ?? settings.queryParams['level']")));
+    });
+
+    test('extra complex params prefer keyed extra before whole-object cast',
+        () {
+      final route = RouteData(
+        className: 'ProfilePage',
+        routeClassName: 'ProfileRoute',
+        path: '/profile',
+        originalPath: '/profile',
+        isInitial: false,
+        params: [
+          ParamData(
+            name: 'user',
+            urlName: 'user',
+            type: 'User',
+            baseType: 'User',
+            isRequired: true,
+            isNullable: false,
+            isNamed: true,
+            source: 'extra',
+          ),
+        ],
+      );
+
+      final output = writer.generateFile([route], {});
+
+      expect(output, contains("settings.getExtra<User>('user')"));
+      expect(output, contains("settings.getExtraAs<User>()"));
+      expect(output, isNot(contains("settings['user']")));
+    });
   });
 }

@@ -133,7 +133,10 @@ abstract class TeleportNavKey {
   ///
   /// This is a shortcut for [TeleportRouter.pop] with `navigatorKey: this`.
   void pop<T extends Object?>([T? result]) {
-    TeleportRouter.instance.pop<T>(result: result);
+    TeleportRouter.instance.pop<T>(
+      result: result,
+      navigatorKey: this,
+    );
   }
 
   /// Check if this navigator can pop.

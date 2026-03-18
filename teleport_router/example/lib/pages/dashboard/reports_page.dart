@@ -20,7 +20,7 @@ class ReportsPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: ElevatedButton(
-                onPressed: () => TeleportRouter.instance.pop(),
+                onPressed: () => context.teleportRouter.pop(),
                 child: const Text('Back to Overview'),
               ),
             ),

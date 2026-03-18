@@ -12,7 +12,7 @@ dependencies:
     path: ../../teleport_router
 
 dev_dependencies:
-  build_runner: any
+  build_runner: 2.10.4
   teleport_router_generator:
     path: ../
 
@@ -23,4 +23,3 @@ dependency_overrides:
     path: ../
   teleport_router:
     path: ../../teleport_router
-
