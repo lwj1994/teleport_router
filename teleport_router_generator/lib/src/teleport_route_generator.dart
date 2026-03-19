@@ -122,9 +122,10 @@ class TeleportRouterBuilder implements Builder {
         // Re-throw validation errors so they appear in build output
         rethrow;
       } catch (e, stackTrace) {
-        // Log warning for files that can't be resolved
-        log.warning(
-          'Failed to process ${input.path}: $e',
+        // Log severe for files that can't be resolved — routes from this file will be MISSING
+        log.severe(
+          'ROUTE GENERATION FAILED for ${input.path}: $e\n'
+          'Routes from this file will be MISSING from the generated output.',
           stackTrace,
         );
         continue;
@@ -191,9 +192,15 @@ class TeleportRouterBuilder implements Builder {
     String sourcePath,
   ) {
     final className = classElement.name;
+    if (className == null) {
+      throw InvalidGenerationSourceError(
+        'Class annotated with @TeleportRoute must have a name.',
+        element: classElement,
+      );
+    }
 
     // Generate route class name (remove Page/Screen suffix)
-    final routeClassName = _generateRouteClassName(className!);
+    final routeClassName = _generateRouteClassName(className);
 
     // Extract annotation values
     var path = annotation.peek('path')?.stringValue;
@@ -231,7 +238,13 @@ class TeleportRouterBuilder implements Builder {
 
     // Analyze constructor parameters
     final constructor = classElement.unnamedConstructor;
-    if (constructor == null) return null;
+    if (constructor == null) {
+      throw InvalidGenerationSourceError(
+        'Class "$className" annotated with @TeleportRoute must have an unnamed constructor. '
+        'Add a default constructor or rename the existing named constructor.',
+        element: classElement,
+      );
+    }
 
     // Collect parameter info
     final params = <ParamData>[];
@@ -279,6 +292,11 @@ class TeleportRouterBuilder implements Builder {
     final colorReader = annotation.peek('barrierColor');
     if (colorReader != null && !colorReader.isNull) {
       barrierColor = colorReader.objectValue.getField('value')?.toIntValue();
+      if (barrierColor == null) {
+        log.warning(
+          'Could not extract barrierColor value. The barrier color will be ignored.',
+        );
+      }
     }
 
     final barrierLabel = annotation.peek('barrierLabel')?.stringValue;
@@ -345,7 +363,10 @@ class TeleportRouterBuilder implements Builder {
       );
     }
 
-    return null;
+    throw InvalidGenerationSourceError(
+      'Could not resolve redirect type. Ensure the redirect parameter is a '
+      'class implementing TeleportRedirect or a top-level function.',
+    );
   }
 
   PageBuilderInfo? _extractPageBuilder(ConstantReader annotation) {
@@ -355,13 +376,17 @@ class TeleportRouterBuilder implements Builder {
     final pbValue = pbReader.objectValue;
     final pbType = pbValue.toTypeValue();
 
-    if (pbType != null && pbType.element != null) {
-      final element = pbType.element!;
-      if (element.name == null) return null;
-      return PageBuilderInfo(
-          name: element.name!, importPath: element.library?.identifier);
+    if (pbType == null ||
+        pbType.element == null ||
+        pbType.element!.name == null) {
+      throw InvalidGenerationSourceError(
+        'Could not resolve pageBuilder type. Ensure the pageBuilder parameter is a '
+        'class extending TeleportPageFactory.',
+      );
     }
-    return null;
+    final element = pbType.element!;
+    return PageBuilderInfo(
+        name: element.name!, importPath: element.library?.identifier);
   }
 
   String _generateKebabCasePath(String className) {
@@ -375,7 +400,7 @@ class TeleportRouterBuilder implements Builder {
     final buffer = StringBuffer();
     for (int i = 0; i < name.length; i++) {
       final char = name[i];
-      if (i > 0 && char == char.toUpperCase()) {
+      if (i > 0 && char == char.toUpperCase() && char != char.toLowerCase()) {
         buffer.write('-');
       }
       buffer.write(char.toLowerCase());
@@ -390,12 +415,15 @@ class TeleportRouterBuilder implements Builder {
 
     final tbValue = tbReader.objectValue;
     final tbType = tbValue.type;
-    if (tbType == null) return null;
+    if (tbType == null || tbType.element == null) {
+      log.warning(
+        'Could not resolve transition type. '
+        'The transition annotation will be ignored.',
+      );
+      return null;
+    }
 
-    final element = tbType.element;
-    if (element == null) return null;
-
-    return element.name;
+    return tbType.element!.name;
   }
 
   /// Extracts Duration from annotation field.
@@ -407,16 +435,34 @@ class TeleportRouterBuilder implements Builder {
 
     final durationValue = durationReader.objectValue;
     // Duration stores microseconds internally in _duration field
-    final micros = durationValue.getField('_duration')?.toIntValue() ?? 300000;
+    final micros = durationValue.getField('_duration')?.toIntValue();
+    if (micros == null) {
+      log.warning(
+        'Could not extract duration value for "$fieldName". '
+        'Falling back to 300ms default. This may indicate a Dart SDK '
+        'internal change in Duration representation.',
+      );
+      return const Duration(milliseconds: 300);
+    }
     return Duration(microseconds: micros);
   }
 
   /// Analyzes a class with @TeleportShellRoute annotation.
   ShellRouteData? _analyzeShellRoute(
       Element element, ConstantReader annotation) {
-    if (element is! ClassElement) return null;
+    if (element is! ClassElement) {
+      throw InvalidGenerationSourceError(
+        'Element annotated with @TeleportShellRoute must be a class.',
+        element: element,
+      );
+    }
     final className = element.name;
-    if (className == null) return null;
+    if (className == null) {
+      throw InvalidGenerationSourceError(
+        'Class annotated with @TeleportShellRoute must have a name.',
+        element: element,
+      );
+    }
     final routeClassName = _generateRouteClassName(className);
 
     // Extract navigatorKey as Type
@@ -461,11 +507,16 @@ class TeleportRouterBuilder implements Builder {
       final list = observersReader.listValue;
       for (final item in list) {
         final type = item.toTypeValue();
-        if (type != null && type.element != null) {
-          observers.add(type.element!.name!);
-          if (type.element!.library != null) {
-            extraImports.add(type.element!.library!.identifier);
-          }
+        if (type == null || type.element == null || type.element!.name == null) {
+          throw InvalidGenerationSourceError(
+            'Could not resolve observer type in @TeleportShellRoute on "$className". '
+            'Ensure all observer types are valid classes.',
+            element: element,
+          );
+        }
+        observers.add(type.element!.name!);
+        if (type.element!.library != null) {
+          extraImports.add(type.element!.library!.identifier);
         }
       }
     }
@@ -477,11 +528,16 @@ class TeleportRouterBuilder implements Builder {
       final list = branchKeysReader.listValue;
       for (final item in list) {
         final type = item.toTypeValue();
-        if (type != null && type.element != null) {
-          branchKeys.add(type.element!.name!);
-          if (type.element!.library?.identifier != null) {
-            extraImports.add(type.element!.library!.identifier);
-          }
+        if (type == null || type.element == null || type.element!.name == null) {
+          throw InvalidGenerationSourceError(
+            'Could not resolve branchKey type in @TeleportShellRoute on "$className". '
+            'Ensure all branchKey types are valid TeleportNavKey subclasses.',
+            element: element,
+          );
+        }
+        branchKeys.add(type.element!.name!);
+        if (type.element!.library?.identifier != null) {
+          extraImports.add(type.element!.library!.identifier);
         }
       }
     }
@@ -500,6 +556,11 @@ class TeleportRouterBuilder implements Builder {
     final colorReader = annotation.peek('barrierColor');
     if (colorReader != null && !colorReader.isNull) {
       barrierColor = colorReader.objectValue.getField('value')?.toIntValue();
+      if (barrierColor == null) {
+        log.warning(
+          'Could not extract barrierColor value. The barrier color will be ignored.',
+        );
+      }
     }
 
     // Extract pageBuilder
@@ -658,12 +719,20 @@ class TeleportRouterBuilder implements Builder {
     if (reader == null || reader.isNull) return null;
 
     final index = reader.objectValue.getField('index')?.toIntValue();
-    if (index != null) {
-      const types = ['defaultType', 'swipeBack'];
-      if (index >= 0 && index < types.length) {
-        return 'TeleportPageType.${types[index]}';
-      }
+    if (index == null) {
+      log.warning(
+        'Could not extract TeleportPageType index. '
+        'The type annotation will be ignored.',
+      );
+      return null;
     }
-    return null;
+    const types = ['defaultType', 'swipeBack'];
+    if (index >= 0 && index < types.length) {
+      return 'TeleportPageType.${types[index]}';
+    }
+    throw InvalidGenerationSourceError(
+      'Unknown TeleportPageType index: $index. '
+      'The generator may need to be updated to support new page types.',
+    );
   }
 }

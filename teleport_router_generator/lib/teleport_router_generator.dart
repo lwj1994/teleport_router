@@ -25,7 +25,7 @@
 /// Then run:
 ///
 /// ```bash
-/// flutter pub run build_runner build
+/// dart run build_runner build
 /// ```
 ///
 /// For more information and complete examples, see the

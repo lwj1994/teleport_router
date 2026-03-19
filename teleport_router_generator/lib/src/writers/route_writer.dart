@@ -230,7 +230,7 @@ class RouteWriter {
       buffer.writeln(
         '    builder: (context, child) => ${route.className}(child: child),',
       );
-      buffer.writeln('    navigatorKey: navigatorGlobalKey,');
+      buffer.writeln('    navigatorKey: navigatorKey,');
       buffer.writeln('    routes: [');
       // For regular shell, all child routes go into a flat list
       for (final branchIndex in sortedBranchIndices) {

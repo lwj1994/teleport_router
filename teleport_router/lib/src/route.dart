@@ -102,11 +102,12 @@ abstract class TeleportRouteData {
   /// context.teleportRouter.teleport(TeleportRouteData.fromPath('/user/123'));
   /// context.teleportRouter.teleport(TeleportRouteData.fromPath('/home', extra: {'key': 'value'}));
   /// ```
-  factory TeleportRouteData.fromPath(String path, {Object? extra = const {}}) {
+  factory TeleportRouteData.fromPath(String path, {Object? extra}) {
     return _PathRoute(path, extra: extra);
   }
 
-  factory TeleportRouteData.from(String path, {Object? extra = const {}}) {
+  @Deprecated('Use TeleportRouteData.fromPath instead')
+  factory TeleportRouteData.from(String path, {Object? extra}) {
     return _PathRoute(path, extra: extra);
   }
 
@@ -119,14 +120,23 @@ abstract class TeleportRouteData {
 
     // 2. Fallback: Parse from settings
     final name = route.settings.name ?? '';
-    final uri = Uri.tryParse(name) ?? Uri();
+    final uri = Uri.tryParse(name);
+    assert(() {
+      if (uri == null && name.isNotEmpty) {
+        debugPrint(
+          'TeleportRouter: Could not parse route name as URI: "$name". '
+          'Query parameters will not be available.',
+        );
+      }
+      return true;
+    }());
 
     return _ContextRouteData(
       fullPath: name,
       routeName: name,
       pathParams: const {}, // Cannot recover path params from raw Route without matching
-      queryParams: uri.queryParameters,
-      extra: args, // Assuming extra is Map if generic
+      queryParams: uri?.queryParameters ?? const {},
+      extra: args,
       pageKey: null,
     );
   }
@@ -144,26 +154,19 @@ abstract class TeleportRouteData {
 
   /// Navigate to this route.
   ///
-  /// [context]: Optional BuildContext for context-aware navigation.
   /// [clearHistory]: If true, clears navigation history (like `go`).
   /// [replacement]: If true, replaces the current route.
-  /// [navigatorKey]: Targets a specific navigator by its [TeleportNavKey].
-  ///
-  /// **Note**: You cannot pass both [context] and [navigatorKey] at the same
-  /// time. Use [context] for context-aware navigation within the current
-  /// navigator, or use [navigatorKey] for navigating within a specific
-  /// named navigator.
   ///
   /// Example:
   /// ```dart
-  /// // Navigate with context (uses current navigator)
-  /// UserRoute(id: 123).teleport(context);
+  /// // Push a new route
+  /// UserRoute(id: 123).teleport();
   ///
-  /// // Navigate to specific navigator (uses TeleportRouter.instance)
-  /// DetailsRoute().teleport(null, navigatorKey: const DashboardNavKey());
+  /// // Clear history and go to route
+  /// LoginRoute().teleport(clearHistory: true);
   ///
-  /// // Wait for result
-  /// final result = await SelectRoute().teleport<String>(context);
+  /// // Replace current route
+  /// SettingsRoute().teleport(replacement: true);
   /// ```
   Future<T?> teleport<T extends Object?>({
     bool clearHistory = false,
@@ -300,7 +303,7 @@ class _PathRoute extends TeleportRouteData {
   @override
   Object? get extra => _extra;
 
-  const _PathRoute(this.fullPath, {Object? extra = const {}}) : _extra = extra;
+  const _PathRoute(this.fullPath, {Object? extra}) : _extra = extra;
 
   @override
   String? get routeName => null;
@@ -368,49 +371,46 @@ extension TeleportRouteDataExtension on BuildContext {
   /// // Result: [HomeRoute, DashboardRoute, SettingsRoute, ProfileRoute]
   /// ```
   List<TeleportRouteData>? routeBreadcrumbs({int? limit}) {
-    try {
-      final router = GoRouter.of(this);
-      final delegate = router.routerDelegate;
-      final config = delegate.currentConfiguration;
+    final router = GoRouter.of(this);
+    final delegate = router.routerDelegate;
+    final config = delegate.currentConfiguration;
 
-      if (config.matches.isEmpty) {
-        return null;
-      }
-
-      final breadcrumbs = <TeleportRouteData>[];
-
-      // Recursively collect all GoRoute matches from the match tree
-      void collectGoRoutes(List<RouteMatchBase> matches) {
-        for (final match in matches) {
-          if (match.route is GoRoute) {
-            try {
-              final matchState = match.buildState(
-                router.routeInformationParser.configuration,
-                config,
-              );
-              breadcrumbs.add(GoRouterStateData(matchState));
-            } catch (e) {
-              // If buildState fails, skip this match
-              continue;
-            }
-          } else if (match is ShellRouteMatch) {
-            // Recursively process child matches in shell routes
-            collectGoRoutes(match.matches);
-          }
-        }
-      }
-
-      collectGoRoutes(config.matches);
-
-      // Apply limit if specified
-      if (limit != null && breadcrumbs.length > limit) {
-        return breadcrumbs.sublist(breadcrumbs.length - limit);
-      }
-
-      return breadcrumbs.isEmpty ? null : breadcrumbs;
-    } catch (e) {
+    if (config.matches.isEmpty) {
       return null;
     }
+
+    final breadcrumbs = <TeleportRouteData>[];
+
+    // Recursively collect all GoRoute matches from the match tree
+    void collectGoRoutes(List<RouteMatchBase> matches) {
+      for (final match in matches) {
+        if (match.route is GoRoute) {
+          try {
+            final matchState = match.buildState(
+              router.routeInformationParser.configuration,
+              config,
+            );
+            breadcrumbs.add(GoRouterStateData(matchState));
+          } catch (e) {
+            // If buildState fails for a single match, skip it and continue
+            debugPrint('TeleportRouter: Failed to build state for match: $e');
+            continue;
+          }
+        } else if (match is ShellRouteMatch) {
+          // Recursively process child matches in shell routes
+          collectGoRoutes(match.matches);
+        }
+      }
+    }
+
+    collectGoRoutes(config.matches);
+
+    // Apply limit if specified
+    if (limit != null && breadcrumbs.length > limit) {
+      return breadcrumbs.sublist(breadcrumbs.length - limit);
+    }
+
+    return breadcrumbs.isEmpty ? null : breadcrumbs;
   }
 }
 

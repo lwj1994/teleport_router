@@ -14,7 +14,7 @@ import 'package:flutter/widgets.dart';
 /// }
 ///
 /// // With custom transition:
-/// @TeleportRoute(path: '/details', transitionsBuilder: TeleportFadeTransition())
+/// @TeleportRoute(path: '/details', transition: const TeleportFadeTransition())
 /// class DetailsPage extends StatelessWidget { ... }
 /// ```
 /// Defines the type of page to use for a route.
