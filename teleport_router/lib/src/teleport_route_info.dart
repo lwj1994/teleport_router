@@ -206,7 +206,7 @@ class TeleportShellRouteInfo extends TeleportRouteBase {
     this.parentNavigatorKey,
     this.observers,
     this.fullscreenDialog = false,
-    this.opaque = false,
+    this.opaque = true,
     this.barrierDismissible = false,
     this.barrierColor,
     this.barrierLabel,
@@ -526,7 +526,7 @@ Page<dynamic> _createTeleportPage({
       transitionDuration: tDur,
       reverseTransitionDuration: rDur,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return TeleportSlideTransition().buildTransitions(
+        return const TeleportSlideTransition().buildTransitions(
           context,
           animation,
           secondaryAnimation,

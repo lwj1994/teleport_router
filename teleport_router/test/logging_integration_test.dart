@@ -53,9 +53,8 @@ void main() {
 
       final route = TeleportRouteData.fromPath('/test');
 
-      // Verify extra is empty Map (default behavior)
-      expect(route.extra, isA<Map>());
-      expect(route.extra, isEmpty);
+      // Verify extra is null when not provided
+      expect(route.extra, isNull);
     });
 
     test('pop result logging formats String correctly', () {
