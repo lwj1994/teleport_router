@@ -20,8 +20,9 @@ class TeleportRouterContext {
   }
 
   /// Pop the current route from the navigation stack.
-  void pop() {
-    TeleportRouter.instance.pop(
+  void pop<T extends Object?>({T? result}) {
+    TeleportRouter.instance.pop<T>(
+      result: result,
       context: context,
     );
   }

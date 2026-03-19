@@ -193,6 +193,19 @@ class TeleportRouter {
     final goRoutes =
         routes.map((r) => r.toGoRoute(config: effectiveConfig)).toList();
 
+    // Dispose previous instance before constructing the new one to avoid
+    // two GoRouter instances sharing the same navigator GlobalKey.
+    if (_instance != null) {
+      assert(() {
+        debugPrint(
+          'TeleportRouter: Re-initializing router. '
+          'Previous instance will be disposed.',
+        );
+        return true;
+      }());
+      _instance!._goRouter.dispose();
+    }
+
     // Automatically inject TeleportRouteObserver for stack manipulation support
     final allObservers = [
       TeleportNavigatorKeyRegistry.rootKey.observer,
@@ -217,8 +230,7 @@ class TeleportRouter {
       redirectLimit: redirectLimit,
       routerNeglect: routerNeglect,
       overridePlatformDefaultLocation: overridePlatformDefaultLocation,
-      observers:
-          allObservers, // ← Use combined observers with TeleportRouteObserver
+      observers: allObservers,
       debugLogDiagnostics: debugLogDiagnostics,
       navigatorKey: TeleportNavigatorKeyRegistry.rootKey.globalKey,
       restorationScopeId: restorationScopeId,
@@ -260,7 +272,7 @@ class TeleportRouter {
 
   /// Get the route observer for stack manipulation.
   ///
-  /// This is used internally by delete() method.
+  /// This is used internally by `removeRoute()` and `removeWhere()` methods.
   TeleportRouteObserver get routeObserver =>
       TeleportNavigatorKeyRegistry.rootKey.observer;
 
@@ -325,17 +337,14 @@ class TeleportRouter {
       }
     }
 
-    // Determine which GoRouter instance to use
-    final targetRouter = _goRouter;
-
     if (isClearHistory) {
-      targetRouter.go(route.fullPath, extra: route.extra);
+      _goRouter.go(route.fullPath, extra: route.extra);
       return Future.value(null);
     } else if (isReplace) {
-      return targetRouter.pushReplacement<T>(route.fullPath,
+      return _goRouter.pushReplacement<T>(route.fullPath,
           extra: route.extra);
     } else {
-      return targetRouter.push<T>(route.fullPath, extra: route.extra);
+      return _goRouter.push<T>(route.fullPath, extra: route.extra);
     }
   }
 
@@ -415,7 +424,7 @@ class TeleportRouter {
   /// Example:
   /// ```dart
   /// // Pop until we find the Home route
-  /// router.popUntil((route, data) => data?.routeName == 'Home');
+  /// router.popUntil((route, data) => data?.routeName == HomeRoute.kName);
   /// ```
   void popUntil(
     bool Function(Route<dynamic> route, TeleportRouteData? data) predicate, {
@@ -565,7 +574,15 @@ class TeleportRouter {
       );
     }
     // Fallback to root
-    return TeleportNavigatorKeyRegistry.rootKey.globalKey.currentState!;
+    final state = TeleportNavigatorKeyRegistry.rootKey.globalKey.currentState;
+    if (state == null) {
+      throw FlutterError(
+        'Root Navigator is not mounted yet. '
+        'Ensure the MaterialApp.router/CupertinoApp.router widget is in the widget tree '
+        'before performing navigation operations.',
+      );
+    }
+    return state;
   }
 
   TeleportRouteObserver _findObserverInNavigator(NavigatorState navigator) {
@@ -588,7 +605,15 @@ class TeleportRouter {
           final found = _searchObservers(children);
           if (found != null) return found;
         }
-      } catch (_) {}
+      } on NoSuchMethodError {
+        // This observer does not expose child observers; skip it.
+      } catch (e) {
+        if (e is Error) rethrow;
+        assert(() {
+          debugPrint('TeleportRouter: Unexpected error searching observers: $e');
+          return true;
+        }());
+      }
     }
     return null;
   }
@@ -596,5 +621,8 @@ class TeleportRouter {
   /// Dispose the router.
   void dispose() {
     _goRouter.dispose();
+    if (identical(_instance, this)) {
+      _instance = null;
+    }
   }
 }

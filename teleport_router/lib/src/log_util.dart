@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 /// ```dart
 /// TeleportRouter(
 ///   enableLogging: true, // Enable debug logs
-///   router: router,
+///   routes: teleportRoutes,
 /// );
 /// ```
 class LogUtil {

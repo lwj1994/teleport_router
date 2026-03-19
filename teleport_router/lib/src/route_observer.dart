@@ -10,17 +10,13 @@ const String kTeleportRoutePrefix = 'teleport_router_';
 /// Navigator observer that tracks route history for stack manipulation.
 ///
 /// This observer maintains a mapping of route names to Route instances,
-/// allowing the delete() method to remove specific routes from the stack.
+/// allowing `removeRoute()` and `removeWhere()` methods to remove specific routes from the stack.
 class TeleportRouteObserver extends NavigatorObserver {
-  /// Map of route name to Route instances (supports multiple instances)
+  /// Map of route name to lists of Route instances (one name can map to multiple route instances)
   final Map<String, List<Route>> _routesByName = {};
 
   /// All routes in order (bottom to top)
   final List<Route> _allRoutes = [];
-
-  /// Map of Route to TeleportRouteData for accessing route details
-  /// This is populated by calling registerRouteBuilder
-  final Map<String, TeleportRouteData Function()> _routeBuilders = {};
 
   /// Actual TeleportRouteData instances for each route
   final Map<Route, TeleportRouteData> _routeDataMap = {};
@@ -38,7 +34,6 @@ class TeleportRouteObserver extends NavigatorObserver {
     _allRoutes.clear();
     _routeDataMap.clear();
     _pendingRemovals.clear();
-    // Do not clear _routeBuilders as they are registered globally/statically
   }
 
   /// Mark a route to be removed automatically when it becomes active (is popped to).
@@ -56,14 +51,6 @@ class TeleportRouteObserver extends NavigatorObserver {
     }
     final name = route.settings.name;
     return name != null && name.startsWith(kTeleportRoutePrefix);
-  }
-
-  /// Register a route builder function for a specific route name.
-  ///
-  /// This is called automatically by generated code to enable
-  /// Observer to reconstruct TeleportRouteData from Route instances.
-  void registerRouteBuilder(String name, TeleportRouteData Function() builder) {
-    _routeBuilders[name] = builder;
   }
 
   @override
@@ -162,7 +149,6 @@ class TeleportRouteObserver extends NavigatorObserver {
     return null;
   }
 
-  /// Get all route data entries
   /// Get all route data entries, ordered by stack position (bottom to top).
   Map<Route, TeleportRouteData> get allRouteData {
     final sortedMap = <Route, TeleportRouteData>{};
@@ -191,7 +177,7 @@ class TeleportRouteObserver extends NavigatorObserver {
     }
   }
 
-  /// Try to extract TeleportRouteData from route settings arguments
+  /// Extract and cache TeleportRouteData from the route.
   void _tryExtractRouteData(Route route) {
     _routeDataMap[route] = TeleportRouteData.fromRoute(route);
   }
@@ -217,10 +203,15 @@ class TeleportRouteObserver extends NavigatorObserver {
     // Keep peeling overlays until the highest tracked pending route is gone.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final currentNavigator = navigator;
-      if (currentNavigator?.canPop() ?? false) {
-        currentNavigator!.pop();
-        WidgetsBinding.instance.scheduleFrame();
+      if (currentNavigator == null || !currentNavigator.canPop()) return;
+
+      // Re-verify the top route is still pending removal (stack may have changed).
+      if (_allRoutes.isEmpty || !_pendingRemovals.contains(_allRoutes.last)) {
+        return;
       }
+
+      currentNavigator.pop();
+      WidgetsBinding.instance.scheduleFrame();
     });
   }
 }

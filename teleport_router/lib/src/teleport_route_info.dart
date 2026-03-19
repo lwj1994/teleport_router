@@ -133,7 +133,6 @@ class TeleportRouteInfo extends TeleportRouteBase {
 
   @override
   GoRoute toGoRoute({TeleportRouterConfig? config}) {
-    // Use pageBuilder for custom transitions
     return GoRoute(
       path: path,
       name: name,
@@ -353,12 +352,14 @@ class TeleportStatefulShellRouteInfo extends TeleportRouteBase {
   @override
   RouteBase toGoRoute({TeleportRouterConfig? config}) {
     // Validate branchNavigatorKeys length if provided
-    assert(
-      branchNavigatorKeys == null ||
-          branchNavigatorKeys!.length == branches.length,
-      'branchNavigatorKeys length (${branchNavigatorKeys?.length}) must match '
-      'branches length (${branches.length})',
-    );
+    if (branchNavigatorKeys != null &&
+        branchNavigatorKeys!.length != branches.length) {
+      throw FlutterError(
+        'branchNavigatorKeys length (${branchNavigatorKeys!.length}) must match '
+        'branches length (${branches.length}). '
+        'Each branch must have a corresponding navigator key.',
+      );
+    }
 
     return StatefulShellRoute.indexedStack(
       parentNavigatorKey: parentNavigatorKey?.globalKey,
