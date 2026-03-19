@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:teleport_router/src/teleport_router.dart';
 import 'package:teleport_router_annotation/teleport_router_annotation.dart';
+import 'log_util.dart';
 import 'navi_key.dart';
 import 'page_factory.dart';
 
@@ -199,7 +200,17 @@ abstract class TeleportRouteData {
   int? getInt(String key, {int? defaultValue}) {
     final raw = pathParams[key] ?? queryParams[key];
     if (raw == null) return defaultValue;
-    return int.tryParse(raw) ?? defaultValue;
+    final parsed = int.tryParse(raw);
+    assert(() {
+      if (parsed == null) {
+        debugPrint(
+          'TeleportRouter: Failed to parse "$raw" as int for parameter "$key". '
+          'Falling back to defaultValue: $defaultValue',
+        );
+      }
+      return true;
+    }());
+    return parsed ?? defaultValue;
   }
 
   /// Get a required int parameter.
@@ -215,7 +226,17 @@ abstract class TeleportRouteData {
   double? getDouble(String key, {double? defaultValue}) {
     final raw = pathParams[key] ?? queryParams[key];
     if (raw == null) return defaultValue;
-    return double.tryParse(raw) ?? defaultValue;
+    final parsed = double.tryParse(raw);
+    assert(() {
+      if (parsed == null) {
+        debugPrint(
+          'TeleportRouter: Failed to parse "$raw" as double for parameter "$key". '
+          'Falling back to defaultValue: $defaultValue',
+        );
+      }
+      return true;
+    }());
+    return parsed ?? defaultValue;
   }
 
   /// Get a required double parameter.
@@ -231,7 +252,17 @@ abstract class TeleportRouteData {
   bool? getBool(String key, {bool? defaultValue}) {
     final raw = pathParams[key] ?? queryParams[key];
     if (raw == null) return defaultValue;
-    return _parseBool(raw) ?? defaultValue;
+    final parsed = _parseBool(raw);
+    assert(() {
+      if (parsed == null) {
+        debugPrint(
+          'TeleportRouter: Failed to parse "$raw" as bool for parameter "$key". '
+          'Falling back to defaultValue: $defaultValue',
+        );
+      }
+      return true;
+    }());
+    return parsed ?? defaultValue;
   }
 
   /// Get a required bool parameter.
@@ -251,6 +282,15 @@ abstract class TeleportRouteData {
       if (value is T) {
         return value;
       }
+      assert(() {
+        if (value != null) {
+          debugPrint(
+            'TeleportRouter: Extra key "$key" exists but has type '
+            '${value.runtimeType}, expected $T. Returning null.',
+          );
+        }
+        return true;
+      }());
     }
     return null;
   }
@@ -393,7 +433,8 @@ extension TeleportRouteDataExtension on BuildContext {
             breadcrumbs.add(GoRouterStateData(matchState));
           } catch (e) {
             // If buildState fails for a single match, skip it and continue
-            debugPrint('TeleportRouter: Failed to build state for match: $e');
+            LogUtil.warning('Failed to build state for match: $e',
+                tag: 'Breadcrumb');
             continue;
           }
         } else if (match is ShellRouteMatch) {

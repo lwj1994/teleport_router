@@ -190,11 +190,10 @@ class TeleportRouter {
           defaultPageBuilder: defaultPageBuilder,
         );
 
-    final goRoutes =
-        routes.map((r) => r.toGoRoute(config: effectiveConfig)).toList();
-
     // Dispose previous instance and clear stale registry state to avoid
     // two GoRouter instances sharing the same navigator GlobalKey.
+    // This must happen BEFORE toGoRoute() so that new GlobalKeys are created
+    // fresh in the registry and remain valid for the widget tree.
     if (_instance != null) {
       assert(() {
         debugPrint(
@@ -206,6 +205,9 @@ class TeleportRouter {
       _instance!._goRouter.dispose();
       TeleportNavigatorKeyRegistry.clear();
     }
+
+    final goRoutes =
+        routes.map((r) => r.toGoRoute(config: effectiveConfig)).toList();
 
     // Automatically inject TeleportRouteObserver for stack manipulation support
     final allObservers = [
@@ -334,7 +336,8 @@ class TeleportRouter {
               'Extra data (${route.extra.runtimeType}): ${route.extra}');
         }
       } catch (e) {
-        LogUtil.params('Extra data: ${route.extra.runtimeType}');
+        LogUtil.params(
+            'Extra data: ${route.extra.runtimeType} (toString() failed: $e)');
       }
     }
 
@@ -371,7 +374,8 @@ class TeleportRouter {
           LogUtil.navigation(
               'pop with result (${result.runtimeType}): $result');
         } catch (e) {
-          LogUtil.navigation('pop with result: ${result.runtimeType}');
+          LogUtil.navigation(
+              'pop with result: ${result.runtimeType} (toString() failed: $e)');
         }
       } else {
         LogUtil.navigation('pop');
@@ -528,6 +532,9 @@ class TeleportRouter {
 
     if (shouldPopCurrentRoute) {
       SchedulerBinding.instance.addPostFrameCallback((_) {
+        // Verify the stack has not already been modified by other navigation
+        // that occurred between the marking and this callback firing.
+        if (observer.allRoutes.isEmpty) return;
         pop(
           navigatorKey: navigatorKey,
         );

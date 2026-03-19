@@ -356,7 +356,7 @@ class TeleportShellRoute {
     this.observers,
     this.branchKeys,
     this.fullscreenDialog = false,
-    this.opaque = false,
+    this.opaque = true,
     this.barrierDismissible = false,
     this.barrierColor,
     this.barrierLabel,

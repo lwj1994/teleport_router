@@ -186,7 +186,7 @@ class RouteWriter {
 
       // Generate page config
       if (route.fullscreenDialog) buffer.writeln('    fullscreenDialog: true,');
-      if (route.opaque) buffer.writeln('    opaque: true,');
+      if (!route.opaque) buffer.writeln('    opaque: false,');
       if (route.barrierDismissible)
         buffer.writeln('    barrierDismissible: true,');
       if (route.barrierColor != null)
@@ -228,7 +228,7 @@ class RouteWriter {
       }
       // Generate page config
       if (route.fullscreenDialog) buffer.writeln('    fullscreenDialog: true,');
-      if (route.opaque) buffer.writeln('    opaque: true,');
+      if (!route.opaque) buffer.writeln('    opaque: false,');
       if (route.barrierDismissible)
         buffer.writeln('    barrierDismissible: true,');
       if (route.barrierColor != null)
@@ -371,6 +371,12 @@ class RouteWriter {
       "    name: '$_kRoutePrefix${route.routeClassName}',",
     );
     buffer.writeln('    isInitial: ${route.isInitial},');
+
+    if (route.parentNavigatorKey != null) {
+      buffer.writeln(
+        '    parentNavigatorKey: const ${route.parentNavigatorKey}().globalKey,',
+      );
+    }
 
     if (route.onExit != null) {
       buffer.writeln(

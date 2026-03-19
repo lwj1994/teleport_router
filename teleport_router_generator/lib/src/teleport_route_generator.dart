@@ -122,13 +122,13 @@ class TeleportRouterBuilder implements Builder {
         // Re-throw validation errors so they appear in build output
         rethrow;
       } catch (e, stackTrace) {
-        // Log severe for files that can't be resolved — routes from this file will be MISSING
-        log.severe(
+        // Rethrow so the build fails visibly — a silent continue would produce
+        // an incomplete route file that looks valid but is missing routes.
+        throw InvalidGenerationSourceError(
           'ROUTE GENERATION FAILED for ${input.path}: $e\n'
-          'Routes from this file will be MISSING from the generated output.',
-          stackTrace,
+          'StackTrace: $stackTrace\n'
+          'Fix the issue above or exclude this file from generation.',
         );
-        continue;
       }
     }
 
@@ -561,7 +561,7 @@ class TeleportRouterBuilder implements Builder {
     // Extract page config
     final fullscreenDialog =
         annotation.peek('fullscreenDialog')?.boolValue ?? false;
-    final opaque = annotation.peek('opaque')?.boolValue ?? false;
+    final opaque = annotation.peek('opaque')?.boolValue ?? true;
     final barrierDismissible =
         annotation.peek('barrierDismissible')?.boolValue ?? false;
     final barrierLabel = annotation.peek('barrierLabel')?.stringValue;

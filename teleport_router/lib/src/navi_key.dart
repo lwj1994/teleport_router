@@ -131,9 +131,10 @@ abstract class TeleportNavKey {
 
   /// Pop the top route from this navigator.
   ///
+  /// Returns `true` if the pop was performed, `false` if already at root.
   /// This is a shortcut for [TeleportRouter.pop] with `navigatorKey: this`.
-  void pop<T extends Object?>([T? result]) {
-    TeleportRouter.instance.pop<T>(
+  bool pop<T extends Object?>([T? result]) {
+    return TeleportRouter.instance.pop<T>(
       result: result,
       navigatorKey: this,
     );

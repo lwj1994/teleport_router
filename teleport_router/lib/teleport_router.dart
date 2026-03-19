@@ -14,12 +14,15 @@ export 'src/teleport_route_info.dart'
         TeleportRouteBase,
         TeleportRedirect,
         TeleportOnExit,
-        TeleportStatefulShellRouteInfo;
+        TeleportStatefulShellRouteInfo,
+        TeleportPageConfig;
 export 'src/teleport_router.dart';
-export 'src/route.dart' show TeleportRouteData, TeleportRouteDataExtension;
+export 'src/route.dart'
+    show TeleportRouteData, TeleportRouteDataExtension, TeleportRouterConfig;
 export 'src/page_factory.dart';
 export 'src/transitions.dart';
 export 'src/navi_key.dart' show TeleportNavKey;
 export 'src/context_extension.dart';
 export 'src/log_util.dart' show LogUtil;
-export 'src/route_observer.dart' show TeleportCompositeObserver;
+export 'src/route_observer.dart'
+    show TeleportCompositeObserver, TeleportRouteObserver;

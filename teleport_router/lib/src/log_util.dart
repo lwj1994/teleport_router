@@ -47,18 +47,16 @@ class LogUtil {
 
   /// Log a warning message
   ///
-  /// Only prints when logging is enabled and in debug mode.
+  /// Always prints in debug mode, regardless of whether logging is enabled.
   static void warning(String message, {String? tag}) {
-    if (!_enabled) return;
     _log(_formatMessage('⚠️', tag ?? 'Warning', message));
   }
 
   /// Log an error message
   ///
-  /// Only prints when logging is enabled and in debug mode.
+  /// Always prints in debug mode, regardless of whether logging is enabled.
   static void error(String message,
       {String? tag, Object? error, StackTrace? stackTrace}) {
-    if (!_enabled) return;
     _log(_formatMessage('❌', tag ?? 'Error', message));
     if (error != null) {
       _log('   Error: $error');
