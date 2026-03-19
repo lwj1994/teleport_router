@@ -134,6 +134,9 @@ class TeleportRouterBuilder implements Builder {
 
     _validateIndexedStackBranches(allRoutes);
 
+    // Validate only one route is marked as initial
+    _validateUniqueInitialRoute(allRoutes);
+
     // Validate duplicate paths
     _validateDuplicatePaths(allRoutes);
 
@@ -160,6 +163,20 @@ class TeleportRouterBuilder implements Builder {
         }
         pathMap[path] = route.routeClassName;
       }
+    }
+  }
+
+  void _validateUniqueInitialRoute(List<BaseRouteData> routes) {
+    final initialRoutes = routes
+        .whereType<RouteData>()
+        .where((r) => r.isInitial)
+        .toList();
+    if (initialRoutes.length > 1) {
+      final names = initialRoutes.map((r) => r.routeClassName).join(', ');
+      throw InvalidGenerationSourceError(
+        'Multiple routes are marked as isInitial: $names. '
+        'Only one route should have isInitial: true.',
+      );
     }
   }
 
@@ -293,8 +310,9 @@ class TeleportRouterBuilder implements Builder {
     if (colorReader != null && !colorReader.isNull) {
       barrierColor = colorReader.objectValue.getField('value')?.toIntValue();
       if (barrierColor == null) {
-        log.warning(
-          'Could not extract barrierColor value. The barrier color will be ignored.',
+        throw InvalidGenerationSourceError(
+          'Could not extract barrierColor value. '
+          'Ensure barrierColor is a valid Color constant (e.g., Color(0x80000000)).',
         );
       }
     }
@@ -416,11 +434,11 @@ class TeleportRouterBuilder implements Builder {
     final tbValue = tbReader.objectValue;
     final tbType = tbValue.type;
     if (tbType == null || tbType.element == null) {
-      log.warning(
+      throw InvalidGenerationSourceError(
         'Could not resolve transition type. '
-        'The transition annotation will be ignored.',
+        'Ensure the transition parameter is a const instance of a class '
+        'that extends TeleportTransitionsBuilder.',
       );
-      return null;
     }
 
     return tbType.element!.name;
@@ -437,12 +455,10 @@ class TeleportRouterBuilder implements Builder {
     // Duration stores microseconds internally in _duration field
     final micros = durationValue.getField('_duration')?.toIntValue();
     if (micros == null) {
-      log.warning(
+      throw InvalidGenerationSourceError(
         'Could not extract duration value for "$fieldName". '
-        'Falling back to 300ms default. This may indicate a Dart SDK '
-        'internal change in Duration representation.',
+        'This may indicate a Dart SDK internal change in Duration representation.',
       );
-      return const Duration(milliseconds: 300);
     }
     return Duration(microseconds: micros);
   }
@@ -557,8 +573,9 @@ class TeleportRouterBuilder implements Builder {
     if (colorReader != null && !colorReader.isNull) {
       barrierColor = colorReader.objectValue.getField('value')?.toIntValue();
       if (barrierColor == null) {
-        log.warning(
-          'Could not extract barrierColor value. The barrier color will be ignored.',
+        throw InvalidGenerationSourceError(
+          'Could not extract barrierColor value. '
+          'Ensure barrierColor is a valid Color constant (e.g., Color(0x80000000)).',
         );
       }
     }
@@ -720,11 +737,10 @@ class TeleportRouterBuilder implements Builder {
 
     final index = reader.objectValue.getField('index')?.toIntValue();
     if (index == null) {
-      log.warning(
+      throw InvalidGenerationSourceError(
         'Could not extract TeleportPageType index. '
-        'The type annotation will be ignored.',
+        'Ensure the type parameter is a valid TeleportPageType enum value.',
       );
-      return null;
     }
     const types = ['defaultType', 'swipeBack'];
     if (index >= 0 && index < types.length) {

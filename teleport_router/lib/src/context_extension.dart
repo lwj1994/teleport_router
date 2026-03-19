@@ -20,8 +20,10 @@ class TeleportRouterContext {
   }
 
   /// Pop the current route from the navigation stack.
-  void pop<T extends Object?>({T? result}) {
-    TeleportRouter.instance.pop<T>(
+  ///
+  /// Returns `true` if the pop was performed, `false` if already at root.
+  bool pop<T extends Object?>({T? result}) {
+    return TeleportRouter.instance.pop<T>(
       result: result,
       context: context,
     );

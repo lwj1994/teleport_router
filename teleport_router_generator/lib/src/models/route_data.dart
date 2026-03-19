@@ -78,6 +78,36 @@ class RouteData implements BaseRouteData {
   });
 
   final String? pageType;
+
+  /// Creates a copy of this [RouteData] with the given fields replaced.
+  RouteData copyWith({
+    String? path,
+    String? originalPath,
+  }) {
+    return RouteData(
+      className: className,
+      routeClassName: routeClassName,
+      path: path ?? this.path,
+      originalPath: originalPath ?? this.originalPath,
+      isInitial: isInitial,
+      params: params,
+      redirect: redirect,
+      transitionType: transitionType,
+      transitionDuration: transitionDuration,
+      reverseTransitionDuration: reverseTransitionDuration,
+      parentNavigatorKey: parentNavigatorKey,
+      onExit: onExit,
+      fullscreenDialog: fullscreenDialog,
+      opaque: opaque,
+      barrierDismissible: barrierDismissible,
+      barrierColor: barrierColor,
+      barrierLabel: barrierLabel,
+      maintainState: maintainState,
+      pageBuilder: pageBuilder,
+      extraImports: extraImports,
+      pageType: pageType,
+    );
+  }
 }
 
 /// Data for a shell route.

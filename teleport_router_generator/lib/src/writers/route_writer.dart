@@ -2,6 +2,7 @@ import '../models/route_data.dart';
 import '../path_resolution.dart';
 
 class RouteWriter {
+  /// Must match [kTeleportRoutePrefix] in route_observer.dart.
   static const _kRoutePrefix = 'teleport_router_';
 
   /// Generates the complete output file content.
@@ -13,30 +14,7 @@ class RouteWriter {
     for (final route in allRoutes) {
       if (route is RouteData) {
         final resolvedPath = resolveRoutePath(route, shellBasePaths);
-        // Create new RouteData with resolved path
-        resolvedRoutes.add(RouteData(
-          className: route.className,
-          routeClassName: route.routeClassName,
-          path: resolvedPath,
-          originalPath: route.originalPath,
-          isInitial: route.isInitial,
-          params: route.params,
-          redirect: route.redirect,
-          transitionType: route.transitionType,
-          transitionDuration: route.transitionDuration,
-          reverseTransitionDuration: route.reverseTransitionDuration,
-          parentNavigatorKey: route.parentNavigatorKey,
-          onExit: route.onExit,
-          fullscreenDialog: route.fullscreenDialog,
-          opaque: route.opaque,
-          barrierDismissible: route.barrierDismissible,
-          barrierColor: route.barrierColor,
-          barrierLabel: route.barrierLabel,
-          maintainState: route.maintainState,
-          pageBuilder: route.pageBuilder,
-          extraImports: route.extraImports,
-          pageType: route.pageType,
-        ));
+        resolvedRoutes.add(route.copyWith(path: resolvedPath));
       } else {
         resolvedRoutes.add(route);
       }

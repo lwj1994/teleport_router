@@ -193,7 +193,7 @@ class TeleportRouter {
     final goRoutes =
         routes.map((r) => r.toGoRoute(config: effectiveConfig)).toList();
 
-    // Dispose previous instance before constructing the new one to avoid
+    // Dispose previous instance and clear stale registry state to avoid
     // two GoRouter instances sharing the same navigator GlobalKey.
     if (_instance != null) {
       assert(() {
@@ -204,6 +204,7 @@ class TeleportRouter {
         return true;
       }());
       _instance!._goRouter.dispose();
+      TeleportNavigatorKeyRegistry.clear();
     }
 
     // Automatically inject TeleportRouteObserver for stack manipulation support
@@ -350,9 +351,11 @@ class TeleportRouter {
 
   /// Pop the current route from the navigation stack.
   ///
+  /// Returns `true` if the pop was performed, `false` if already at root.
+  ///
   /// When [navigatorKey] or [context] is provided, the pop is scoped to that
   /// specific navigator instead of the root router.
-  void pop<T extends Object?>({
+  bool pop<T extends Object?>({
     T? result,
     TeleportNavKey? navigatorKey,
     BuildContext? context,
@@ -364,19 +367,9 @@ class TeleportRouter {
 
     if (targetCanPop) {
       if (result != null) {
-        // Format result value for logging
         try {
-          if (result is Map) {
-            LogUtil.navigation('pop with result: $result');
-          } else if (result is List) {
-            LogUtil.navigation('pop with result (list): $result');
-          } else if (result is String || result is num || result is bool) {
-            LogUtil.navigation(
-                'pop with result (${result.runtimeType}): $result');
-          } else {
-            LogUtil.navigation(
-                'pop with result (${result.runtimeType}): $result');
-          }
+          LogUtil.navigation(
+              'pop with result (${result.runtimeType}): $result');
         } catch (e) {
           LogUtil.navigation('pop with result: ${result.runtimeType}');
         }
@@ -388,8 +381,10 @@ class TeleportRouter {
       } else {
         _goRouter.pop<T>(result);
       }
+      return true;
     } else {
       LogUtil.warning('Cannot pop: already at root route');
+      return false;
     }
   }
 
@@ -598,21 +593,9 @@ class TeleportRouter {
   TeleportRouteObserver? _searchObservers(List<NavigatorObserver> observers) {
     for (final observer in observers) {
       if (observer is TeleportRouteObserver) return observer;
-      try {
-        final dynamic dynamicObserver = observer;
-        final children = dynamicObserver.observers;
-        if (children is List<NavigatorObserver>) {
-          final found = _searchObservers(children);
-          if (found != null) return found;
-        }
-      } on NoSuchMethodError {
-        // This observer does not expose child observers; skip it.
-      } catch (e) {
-        if (e is Error) rethrow;
-        assert(() {
-          debugPrint('TeleportRouter: Unexpected error searching observers: $e');
-          return true;
-        }());
+      if (observer is TeleportCompositeObserver) {
+        final found = _searchObservers(observer.observers);
+        if (found != null) return found;
       }
     }
     return null;

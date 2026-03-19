@@ -22,3 +22,4 @@ export 'src/transitions.dart';
 export 'src/navi_key.dart' show TeleportNavKey;
 export 'src/context_extension.dart';
 export 'src/log_util.dart' show LogUtil;
+export 'src/route_observer.dart' show TeleportCompositeObserver;
