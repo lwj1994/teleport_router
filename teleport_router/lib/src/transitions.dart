@@ -27,16 +27,11 @@ class TeleportSlideTransition extends TeleportTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    final curvedAnimation = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeInOutQuart,
-      reverseCurve: Curves.easeInOutQuint,
-    );
     return SlideTransition(
       position: Tween<Offset>(
         begin: const Offset(1.0, 0.0),
         end: Offset.zero,
-      ).animate(curvedAnimation),
+      ).chain(CurveTween(curve: Curves.easeInOutQuart)).animate(animation),
       child: child,
     );
   }
@@ -73,16 +68,11 @@ class TeleportSlideUpTransition extends TeleportTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    final curvedAnimation = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeInOutQuart,
-      reverseCurve: Curves.easeInOutQuint,
-    );
     return SlideTransition(
       position: Tween<Offset>(
         begin: const Offset(0.0, 1.0),
         end: Offset.zero,
-      ).animate(curvedAnimation),
+      ).chain(CurveTween(curve: Curves.easeInOutQuart)).animate(animation),
       child: child,
     );
   }
@@ -99,13 +89,8 @@ class TeleportScaleTransition extends TeleportTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    final curvedAnimation = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeInOutQuart,
-      reverseCurve: Curves.easeOutBack,
-    );
     return ScaleTransition(
-      scale: curvedAnimation,
+      scale: CurveTween(curve: Curves.easeInOutQuart).animate(animation),
       child: child,
     );
   }

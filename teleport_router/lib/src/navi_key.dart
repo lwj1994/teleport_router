@@ -35,8 +35,8 @@ import 'teleport_router.dart';
 ///   const MainNavKey() : super('main');
 /// }
 ///
-/// class MainDashBoradNavKey extends TeleportNavKey {
-///   const MainDashBoradNavKey() : super('dashboard');
+/// class MainDashboardNavKey extends TeleportNavKey {
+///   const MainDashboardNavKey() : super('dashboard');
 /// }
 ///
 /// // 2. Use in shell route annotation
@@ -54,7 +54,7 @@ import 'teleport_router.dart';
 ///
 /// ```dart
 /// // Pop from a specific navigator
-/// const MainDashBoradNavKey().pop();
+/// const MainDashboardNavKey().pop();
 ///
 /// // Check ability to pop
 /// bool canPop = const MainNavKey().canPop;

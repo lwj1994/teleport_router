@@ -20,23 +20,23 @@ import 'route_observer.dart';
 ///
 /// 1. Define your navigator keys:
 /// ```dart
-/// class MainDashBoradNavKey extends TeleportNavKey {
-///   const MainDashBoradNavKey() : super('dashboard');
+/// class MainDashboardNavKey extends TeleportNavKey {
+///   const MainDashboardNavKey() : super('dashboard');
 /// }
 /// ```
 ///
 /// 2. Access the GlobalKey via the TeleportNavKey:
 /// ```dart
 /// // Preferred way - use TeleportNavKey.globalKey
-/// final key = const MainDashBoradNavKey().globalKey;
+/// final key = const MainDashboardNavKey().globalKey;
 ///
 /// // Or via registry (less common)
-/// final key = TeleportNavigatorKeyRegistry.getOrCreate(const MainDashBoradNavKey());
+/// final key = TeleportNavigatorKeyRegistry.getOrCreate(const MainDashboardNavKey());
 /// ```
 ///
 /// 3. Access the observer for route stack manipulation:
 /// ```dart
-/// final observer = TeleportNavigatorKeyRegistry.getOrCreateObserver(const MainDashBoradNavKey());
+/// final observer = TeleportNavigatorKeyRegistry.getOrCreateObserver(const MainDashboardNavKey());
 /// ```
 class TeleportNavigatorKeyRegistry {
   TeleportNavigatorKeyRegistry._();
@@ -90,9 +90,12 @@ class TeleportNavigatorKeyRegistry {
 
   /// Clear all registered keys and observers.
   ///
-  /// **Warning**: This is mainly for testing purposes. Calling this in
-  /// production will cause state inconsistency since already-mounted
-  /// Navigators will still hold references to old GlobalKeys.
+  /// Called internally when [TeleportRouter] is re-initialized, and
+  /// available for testing via `@visibleForTesting`.
+  ///
+  /// **Warning**: Do not call this manually in production. It is safe
+  /// only during router re-initialization (which disposes the old router first)
+  /// or in test teardown.
   @visibleForTesting
   static void clear() {
     _keys.clear();

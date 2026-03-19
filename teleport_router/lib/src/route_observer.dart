@@ -7,6 +7,15 @@ import 'package:teleport_router/teleport_router.dart';
 /// This is used by [TeleportRouteObserver] to identify and track teleport_router routes.
 const String kTeleportRoutePrefix = 'teleport_router_';
 
+/// Mixin for [NavigatorObserver]s that contain child observers.
+///
+/// Implement this on composite observer classes so that
+/// [TeleportRouter] can search nested observers for [TeleportRouteObserver].
+mixin TeleportCompositeObserver on NavigatorObserver {
+  /// The child observers contained within this composite observer.
+  List<NavigatorObserver> get observers;
+}
+
 /// Navigator observer that tracks route history for stack manipulation.
 ///
 /// This observer maintains a mapping of route names to Route instances,

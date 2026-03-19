@@ -17,6 +17,7 @@ import 'package:flutter/widgets.dart';
 /// @TeleportRoute(path: '/details', transition: const TeleportFadeTransition())
 /// class DetailsPage extends StatelessWidget { ... }
 /// ```
+
 /// Defines the type of page to use for a route.
 enum TeleportPageType {
   /// The default page type.
@@ -42,11 +43,17 @@ class TeleportRoute {
   /// Custom transition builder for this route.
   ///
   /// Should be a const instance of a class that extends [TeleportTransitionsBuilder].
-  /// Built-in options (from teleport_router): TeleportFadeTransition, TeleportSlideTransition, TeleportNoTransition.
+  /// Built-in options (from teleport_router):
+  /// - [TeleportFadeTransition]
+  /// - [TeleportSlideTransition]
+  /// - [TeleportCupertinoPageTransition]
+  /// - [TeleportSlideUpTransition]
+  /// - [TeleportScaleTransition]
+  /// - [TeleportNoTransition]
   ///
   /// Example:
   /// ```dart
-  /// @TeleportRoute(path: '/fade', transition: TeleportFadeTransition())
+  /// @TeleportRoute(path: '/fade', transition: const TeleportFadeTransition())
   /// class FadePage extends StatelessWidget { ... }
   /// ```
   final TeleportTransitionsBuilder? transition;
@@ -322,7 +329,7 @@ class TeleportShellRoute {
   /// Custom PageBuilder class type.
   ///
   /// If provided, this factory will be used to build the [Page], overriding
-  /// any [transition] or default page settings.
+  /// default page settings.
   final Type? pageBuilder;
 
   /// List of navigator keys for each branch (for IndexedStack).
