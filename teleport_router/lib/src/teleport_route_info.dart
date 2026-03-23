@@ -333,7 +333,7 @@ class TeleportStatefulShellRouteInfo extends TeleportRouteBase {
     this.branchNavigatorKeys,
     this.parentNavigatorKey,
     this.fullscreenDialog = false,
-    this.opaque = false,
+    this.opaque = true,
     this.barrierDismissible = false,
     this.barrierColor,
     this.barrierLabel,

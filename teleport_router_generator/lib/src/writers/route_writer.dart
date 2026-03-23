@@ -108,6 +108,8 @@ class RouteWriter {
     List<BaseRouteData> allRoutes,
   ) {
     final buffer = StringBuffer();
+    final effectiveParentNavigatorKey =
+        _effectiveGeneratedParentNavigatorKey(route, allRoutes);
     buffer.writeln('class ${route.routeClassName} {');
 
     // Generate static navigatorKey constant and GlobalKey
@@ -152,6 +154,11 @@ class RouteWriter {
       buffer.writeln(
         '    builder: (context, navigationShell) => ${route.className}(navigationShell: navigationShell),',
       );
+      if (effectiveParentNavigatorKey != null) {
+        buffer.writeln(
+          '    parentNavigatorKey: ${effectiveParentNavigatorKey}(),',
+        );
+      }
       buffer.writeln('    branches: [');
       for (final branchIndex in sortedBranchIndices) {
         final branchRoutes = branchesMap[branchIndex]!;
@@ -198,6 +205,9 @@ class RouteWriter {
       if (route.pageBuilder != null) {
         buffer.writeln('    pageBuilder: ${route.pageBuilder!.name}(),');
       }
+      if (route.pageType != null) {
+        buffer.writeln('    type: ${route.pageType},');
+      }
 
       buffer.writeln('  );');
     } else {
@@ -209,6 +219,11 @@ class RouteWriter {
         '    builder: (context, child) => ${route.className}(child: child),',
       );
       buffer.writeln('    navigatorKey: navigatorKey,');
+      if (effectiveParentNavigatorKey != null) {
+        buffer.writeln(
+          '    parentNavigatorKey: ${effectiveParentNavigatorKey}(),',
+        );
+      }
       buffer.writeln('    routes: [');
       // For regular shell, all child routes go into a flat list
       for (final branchIndex in sortedBranchIndices) {
@@ -256,6 +271,8 @@ class RouteWriter {
   String generateRouteClass(RouteData route, List<BaseRouteData> allRoutes) {
     final buffer = StringBuffer();
     final routeClassName = route.routeClassName;
+    final effectiveParentNavigatorKey =
+        _effectiveGeneratedParentNavigatorKey(route, allRoutes);
 
     buffer.writeln('/// Route class for [${route.className}].');
     buffer.writeln('///');
@@ -372,9 +389,9 @@ class RouteWriter {
     );
     buffer.writeln('    isInitial: ${route.isInitial},');
 
-    if (route.parentNavigatorKey != null) {
+    if (effectiveParentNavigatorKey != null) {
       buffer.writeln(
-        '    parentNavigatorKey: const ${route.parentNavigatorKey}().globalKey,',
+        '    parentNavigatorKey: const ${effectiveParentNavigatorKey}().globalKey,',
       );
     }
 
@@ -702,5 +719,32 @@ class RouteWriter {
   bool isComplexType(String type) {
     const primitives = ['String', 'int', 'double', 'bool', 'num'];
     return !primitives.contains(type);
+  }
+
+  String? _effectiveGeneratedParentNavigatorKey(
+    BaseRouteData route,
+    List<BaseRouteData> allRoutes,
+  ) {
+    String? parentNavigatorKey;
+    if (route is RouteData) {
+      parentNavigatorKey = route.parentNavigatorKey;
+    } else if (route is ShellRouteData) {
+      parentNavigatorKey = route.parentNavigatorKey;
+    }
+
+    if (parentNavigatorKey == null) {
+      return null;
+    }
+
+    for (final shell in allRoutes.whereType<ShellRouteData>()) {
+      if (shell.isIndexedStack && shell.navigatorKey == parentNavigatorKey) {
+        // Routes grouped under an indexed shell's own navigator key belong to
+        // the first branch. They should use that branch's implicit navigator,
+        // not a non-existent shell navigator key.
+        return null;
+      }
+    }
+
+    return parentNavigatorKey;
   }
 }

@@ -57,6 +57,7 @@ class AnalyticsRoute extends TeleportRouteData {
     path: '/dashboard/analytics',
     name: 'teleport_router_AnalyticsRoute',
     isInitial: false,
+    parentNavigatorKey: const MainDashBoradNavKey().globalKey,
     params: [
       TeleportParamInfo(
         name: 'title',
@@ -120,6 +121,7 @@ class DashboardOverviewRoute extends TeleportRouteData {
     path: '/dashboard/overview',
     name: 'teleport_router_DashboardOverviewRoute',
     isInitial: false,
+    parentNavigatorKey: const MainDashBoradNavKey().globalKey,
     params: [],
     builder: (settings) {
       return DashboardOverviewPage();
@@ -163,6 +165,7 @@ class ReportsRoute extends TeleportRouteData {
     path: '/dashboard/reports',
     name: 'teleport_router_ReportsRoute',
     isInitial: false,
+    parentNavigatorKey: const MainDashBoradNavKey().globalKey,
     params: [],
     builder: (settings) {
       return ReportsPage();
@@ -234,6 +237,7 @@ class DetailsRoute extends TeleportRouteData {
     path: '/details',
     name: 'teleport_router_DetailsRoute',
     isInitial: false,
+    parentNavigatorKey: const MainHomeNavKey().globalKey,
     params: [
       TeleportParamInfo(
         name: 'title',
@@ -321,6 +325,7 @@ class LoginRoute extends TeleportRouteData {
     path: '/login',
     name: 'teleport_router_LoginRoute',
     isInitial: false,
+    parentNavigatorKey: const MainHomeNavKey().globalKey,
     params: [],
     builder: (settings) {
       return LoginPage();
@@ -364,6 +369,7 @@ class HomeRoute extends TeleportRouteData {
     path: '/',
     name: 'teleport_router_HomeRoute',
     isInitial: true,
+    parentNavigatorKey: const MainHomeNavKey().globalKey,
     params: [],
     builder: (settings) {
       return HomePage();
@@ -438,6 +444,7 @@ class SettingsRoute extends TeleportRouteData {
     path: '/settings',
     name: 'teleport_router_SettingsRoute',
     isInitial: false,
+    parentNavigatorKey: const MainSettingNavKey().globalKey,
     params: [],
     builder: (settings) {
       return SettingsPage();
@@ -599,6 +606,7 @@ class ProtectedRoute extends TeleportRouteData {
     path: '/protected',
     name: 'teleport_router_ProtectedRoute',
     isInitial: false,
+    parentNavigatorKey: const MainHomeNavKey().globalKey,
     params: [],
     redirect: (context, data) async {
       final route = ProtectedRoute.fromData(data);
@@ -854,6 +862,7 @@ class UserRoute extends TeleportRouteData {
     path: '/user/:id',
     name: 'teleport_router_UserRoute',
     isInitial: false,
+    parentNavigatorKey: const MainHomeNavKey().globalKey,
     params: [
       TeleportParamInfo(
         name: 'id',
