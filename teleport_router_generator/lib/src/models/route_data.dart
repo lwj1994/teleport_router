@@ -142,7 +142,7 @@ class ShellRouteData implements BaseRouteData {
     this.observers = const [],
     this.extraImports = const {},
     this.fullscreenDialog = false,
-    this.opaque = false,
+    this.opaque = true,
     this.barrierDismissible = false,
     this.barrierColor,
     this.barrierLabel,
