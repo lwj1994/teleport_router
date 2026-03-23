@@ -14,7 +14,8 @@ import 'swipe_back.dart';
 /// [data] contains all route parameters with type-safe access.
 typedef TeleportPageBuilder = Widget Function(TeleportRouteData data);
 
-/// Function type for building a shell widget (e.g. Scaffold with generic child).
+/// Function type for building a shell widget that wraps a child widget
+/// (e.g., a Scaffold with a navigation body).
 typedef TeleportShellBuilder = Widget Function(
     BuildContext context, Widget child);
 
@@ -273,7 +274,10 @@ class TeleportStatefulNavigationShell extends StatelessWidget {
   /// The current branch index.
   int get currentIndex => _shell.currentIndex;
 
-  /// Switch to a branch.
+  /// Switch to the branch at [index].
+  ///
+  /// If [popToInitial] is true, the branch's navigation stack is reset
+  /// to its initial route.
   void teleport(int index, {bool popToInitial = false}) {
     if (index < 0 || index >= _branchCount) {
       throw RangeError.range(

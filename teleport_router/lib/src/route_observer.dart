@@ -19,7 +19,8 @@ mixin TeleportCompositeObserver on NavigatorObserver {
 /// Navigator observer that tracks route history for stack manipulation.
 ///
 /// This observer maintains a mapping of route names to Route instances,
-/// allowing `removeRoute()` and `removeWhere()` methods to remove specific routes from the stack.
+/// providing the tracking foundation used by [TeleportRouter.removeRoute()]
+/// and [TeleportRouter.removeWhere()].
 class TeleportRouteObserver extends NavigatorObserver {
   /// Map of route name to lists of Route instances (one name can map to multiple route instances)
   final Map<String, List<Route>> _routesByName = {};
@@ -52,8 +53,8 @@ class TeleportRouteObserver extends NavigatorObserver {
 
   /// Check if a route should be tracked by this observer.
   ///
-  /// Routes are tracked when they preserve [TeleportRouteData] in
-  /// [RouteSettings.arguments], or when they use a generated route name.
+  /// Routes are tracked when [RouteSettings.arguments] is a [TeleportRouteData]
+  /// instance, or when the route name starts with [kTeleportRoutePrefix].
   bool _shouldTrackRoute(Route route) {
     if (route.settings.arguments is TeleportRouteData) {
       return true;
