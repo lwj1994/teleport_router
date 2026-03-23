@@ -41,9 +41,9 @@ class TeleportRouter {
 
   static TeleportRouter? _instance;
 
-  /// Get the global router instance.
+  /// Get the most recently created router instance.
   ///
-  /// This is available after the first call to the factory constructor.
+  /// Set automatically by the factory constructor and updated on re-initialization.
   static TeleportRouter get instance {
     if (_instance == null) {
       throw FlutterError(
@@ -78,7 +78,8 @@ class TeleportRouter {
   /// Defaults to false.
   ///
   /// [initialRouteData] The initial route of the router. If not provided,
-  /// it usually defaults to auto-detected initial route or `/`.
+  /// the router searches routes for one marked `isInitial`, then falls back
+  /// to the first route's path, then falls back to `/`.
   ///
   /// [overridePlatformDefaultLocation] Whether to override the platform default
   /// initial route. Defaults to false.
@@ -136,13 +137,11 @@ class TeleportRouter {
     OnEnter? onEnter,
     Codec<Object?, String>? extraCodec,
   }) {
-    // Initialize logging
     LogUtil.setEnabled(enableLogging);
 
     LogUtil.section('TeleportRouter Initialization');
     LogUtil.info('Registering ${routes.length} routes');
 
-    // Use the provided key or fall back to the global root key
     if (navigatorKey != null) {
       TeleportNavigatorKeyRegistry.rootKey = navigatorKey;
       LogUtil.debug('Using custom navigator key: ${navigatorKey.key}');
@@ -179,8 +178,6 @@ class TeleportRouter {
       LogUtil.info('Initial route set to: $startLoc');
     }
 
-    // Convert TeleportRouteBase to GoRoute/ShellRoute
-    // Use provided config or construct from parameters
     final effectiveConfig = config ??
         TeleportRouterConfig(
           defaultTransition: defaultTransition,
@@ -273,9 +270,9 @@ class TeleportRouter {
   /// Get the list of registered routes.
   List<TeleportRouteBase> get routes => List.unmodifiable(_routes);
 
-  /// Get the route observer for stack manipulation.
+  /// Get the route observer for the root navigator.
   ///
-  /// This is used internally by `removeRoute()` and `removeWhere()` methods.
+  /// For shell-scoped observers, use [TeleportNavKey.observer].
   TeleportRouteObserver get routeObserver =>
       TeleportNavigatorKeyRegistry.rootKey.observer;
 
@@ -308,7 +305,6 @@ class TeleportRouter {
     bool isReplace = false,
     bool isClearHistory = false,
   }) {
-    // Log navigation
     final action = isClearHistory
         ? 'go (clear history)'
         : isReplace
@@ -407,6 +403,10 @@ class TeleportRouter {
       if (list.isNotEmpty) {
         return list.values.last;
       }
+      LogUtil.debug(
+        'Navigator key "${navigatorKey.key}" has no tracked routes. '
+        'Falling back to root router delegate.',
+      );
     }
     final GoRouterDelegate currentDelegate = _goRouter.routerDelegate;
     return RouteMatchListRouteData(currentDelegate);
@@ -430,9 +430,7 @@ class TeleportRouter {
     TeleportNavKey? navigatorKey,
     BuildContext? context,
   }) {
-    final nav = context != null
-        ? Navigator.of(context)
-        : _getNavigator(navigatorKey: navigatorKey);
+    final nav = _getNavigator(navigatorKey: navigatorKey, context: context);
     final observer = _findObserverInNavigator(nav);
 
     // Iteratively check the top route and pop if predicate is not met
@@ -466,7 +464,8 @@ class TeleportRouter {
 
   /// Pop until the specified route is found.
   ///
-  /// Matches by [TeleportRouteData.routeName] and [TeleportRouteData.fullPath].
+  /// Matches routes using equality (`==`), which compares by
+  /// [TeleportRouteData.routeName] and [TeleportRouteData.fullPath].
   void popTo(
     TeleportRouteData route, {
     TeleportNavKey? navigatorKey,
@@ -561,8 +560,9 @@ class TeleportRouter {
   /// Internal helper to get NavigatorState.
   ///
   /// Logic:
-  /// 1. If navigatorKey is provided and found, use it.
-  /// 2. Otherwise (navigatorKey null/not found), use root.
+  /// 1. If context is provided, use Navigator.of(context).
+  /// 2. If navigatorKey is provided and mounted, use it.
+  /// 3. Otherwise, use root navigator.
   NavigatorState _getNavigator(
       {TeleportNavKey? navigatorKey, BuildContext? context}) {
     if (context != null) return Navigator.of(context);
@@ -610,6 +610,7 @@ class TeleportRouter {
 
   /// Dispose the router.
   void dispose() {
+    LogUtil.setEnabled(false);
     _goRouter.dispose();
     if (identical(_instance, this)) {
       _instance = null;

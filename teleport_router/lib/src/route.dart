@@ -301,10 +301,20 @@ abstract class TeleportRouteData {
     if (e is T) {
       return e;
     }
+    assert(() {
+      if (e != null) {
+        debugPrint(
+          'TeleportRouter: Extra data has type ${e.runtimeType}, '
+          'expected $T. Returning null.',
+        );
+      }
+      return true;
+    }());
     return null;
   }
 
   /// Access any parameter by key (path > query > extra).
+  /// Extra data is only searched when it is a [Map].
   Object? operator [](String key) {
     final e = extra;
     return pathParams[key] ?? queryParams[key] ?? (e is Map ? e[key] : null);
@@ -403,7 +413,9 @@ extension TeleportRouteDataExtension on BuildContext {
   /// Returns a list of [TeleportRouteData] representing the navigation hierarchy.
   /// The first item is the root route, and the last item is the current route.
   ///
-  /// [limit]: Maximum number of routes to return. If null, returns all routes.
+  /// [limit]: Maximum number of routes to return (from the end of the
+  /// breadcrumb trail). When specified, returns only the N most recent routes.
+  /// If null, returns all routes.
   ///
   /// Example:
   /// ```dart

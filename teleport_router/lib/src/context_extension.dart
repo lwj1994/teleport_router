@@ -46,6 +46,22 @@ class TeleportRouterContext {
     );
   }
 
+  /// Navigate to a route.
+  ///
+  /// Delegates to [TeleportRouter.teleport].
+  Future<T?> teleport<T extends Object?>(
+    TeleportRouteData route, {
+    bool isReplace = false,
+    bool isClearHistory = false,
+  }) {
+    return TeleportRouter.instance.teleport<T>(
+      route,
+      isReplace: isReplace,
+      isClearHistory: isClearHistory,
+    );
+  }
+
+  /// Get the current route data from the navigation context.
   TeleportRouteData get currentRoute {
     return TeleportRouter.instance.currentRoute(
       context: context,

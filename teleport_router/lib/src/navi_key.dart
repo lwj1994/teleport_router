@@ -50,7 +50,7 @@ import 'teleport_router.dart';
 ///
 /// ## Runtime Usage
 ///
-/// Use navigator keys for targeted navigation operations (specifically pop):
+/// Use navigator keys for targeted navigation operations:
 ///
 /// ```dart
 /// // Pop from a specific navigator

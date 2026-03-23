@@ -35,7 +35,7 @@ class TeleportRouterBuilder implements Builder {
   static const _teleportRouteChecker = TypeChecker.fromUrl(
     'package:teleport_router_annotation/src/teleport_route.dart#TeleportRoute',
   );
-  static const _tpShellRouteChecker = TypeChecker.fromUrl(
+  static const _teleportShellRouteChecker = TypeChecker.fromUrl(
     'package:teleport_router_annotation/src/teleport_route.dart#TeleportShellRoute',
   );
   static const _pathChecker = TypeChecker.fromUrl(
@@ -101,7 +101,7 @@ class TeleportRouterBuilder implements Builder {
         }
 
         // Find all classes with @TeleportShellRoute annotation
-        for (final annotated in reader.annotatedWith(_tpShellRouteChecker)) {
+        for (final annotated in reader.annotatedWith(_teleportShellRouteChecker)) {
           final element = annotated.element;
           if (element is! ClassElement) continue;
 
